@@ -283,7 +283,7 @@ async function spin() {
   renderUsed();
 
   try {
-    await gasGet({ action: 'addUsed', id: item.id });
+    await gasGet({ action: 'addUsed', id: item.id, theme: item.theme });
     setStatus('ok', `スプレッドシートと連携済み — ${themes.length - usedIds.length}テーマ残り`);
   } catch(e) {
     setStatus('error', '記録に失敗しました（ローカルのみ更新）');
