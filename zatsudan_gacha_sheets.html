@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>雑談ガチャ</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f3ef;
+    --surface: #ffffff;
+    --surface2: #f0ede8;
+    --text: #1a1814;
+    --text-sub: #6b6760;
+    --text-hint: #a09d99;
+    --accent: #534AB7;
+    --accent-dark: #3C3489;
+    --accent-light: #EEEDFE;
+    --accent-text: #3C3489;
+    --border: rgba(0,0,0,0.1);
+    --border-mid: rgba(0,0,0,0.15);
+    --radius: 16px;
+    --radius-sm: 8px;
+    --green: #1D9E75;
+    --amber: #EF9F27;
+    --red: #E24B4A;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #18161c;
+      --surface: #221f2a;
+      --surface2: #2c2836;
+      --text: #f0eef8;
+      --text-sub: #a09ab8;
+      --text-hint: #6b6680;
+      --accent: #7b72d4;
+      --accent-dark: #a49ae8;
+      --accent-light: #26215C;
+      --accent-text: #c4bef5;
+      --border: rgba(255,255,255,0.08);
+      --border-mid: rgba(255,255,255,0.14);
+    }
+  }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2.5rem 1rem 4rem;
+  }
+
+  header { text-align: center; margin-bottom: 1.75rem; }
+  header h1 { font-size: 26px; font-weight: 700; letter-spacing: 0.05em; }
+  header p { font-size: 13px; color: var(--text-sub); margin-top: 6px; }
+
+  .status-bar {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 12px; color: var(--text-hint);
+    margin-bottom: 1.25rem;
+  }
+  .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green); flex-shrink: 0;
+    transition: background 0.3s;
+  }
+  .dot.loading { background: var(--amber); animation: blink 1s infinite; }
+  .dot.error { background: var(--red); }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .card {
+    width: 100%; max-width: 520px; min-height: 190px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 2rem 1.75rem;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0.9rem; text-align: center;
+    transition: opacity 0.2s, transform 0.2s;
+    margin-bottom: 1.25rem;
+  }
+
+  .badge {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 4px 14px; border-radius: 99px;
+    background: var(--accent-light); color: var(--accent-text);
+  }
+  .card-theme { font-size: 18px; font-weight: 500; line-height: 1.65; }
+  .card-desc { font-size: 13px; color: var(--text-sub); line-height: 1.6; }
+  .card-hint {
+    font-size: 12px; color: var(--text-hint);
+    border-top: 1px solid var(--border);
+    padding-top: 0.75rem; width: 100%;
+    text-align: left; line-height: 1.6;
+  }
+  .card-empty { font-size: 14px; color: var(--text-hint); }
+
+  .actions {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    justify-content: center; margin-bottom: 1.5rem;
+    width: 100%; max-width: 520px;
+  }
+
+  .btn-main {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px; font-weight: 700;
+    padding: 0.8rem 2.5rem; border-radius: 99px;
+    border: none; background: var(--accent); color: #fff;
+    cursor: pointer; letter-spacing: 0.04em;
+    transition: background 0.15s, transform 0.1s;
+  }
+  .btn-main:hover { background: var(--accent-dark); }
+  .btn-main:active { transform: scale(0.97); }
+  .btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-sub {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px; padding: 0.6rem 1.2rem;
+    border-radius: 99px;
+    border: 1px solid var(--border-mid);
+    background: transparent; color: var(--text-sub);
+    cursor: pointer; transition: background 0.15s;
+  }
+  .btn-sub:hover { background: var(--surface2); }
+  .btn-sub.success { color: var(--accent); border-color: var(--accent); }
+
+  .used-section {
+    width: 100%; max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    display: none;
+  }
+  .used-label {
+    font-size: 11px; font-weight: 700;
+    color: var(--text-hint); letter-spacing: 0.08em;
+    margin-bottom: 6px;
+  }
+  .used-prog { font-size: 12px; color: var(--text-hint); margin-bottom: 10px; }
+  .used-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .used-tag {
+    font-size: 12px; color: var(--text-sub);
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 3px 10px;
+  }
+  .btn-reset {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 12px; color: var(--text-hint);
+    background: none; border: none;
+    cursor: pointer; text-decoration: underline; padding: 0;
+  }
+  .btn-reset:hover { color: var(--text-sub); }
+
+  footer {
+    margin-top: 3rem; font-size: 11px;
+    color: var(--text-hint); text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>雑談ガチャ</h1>
+  <p>オンラインMTGのアイスブレイクに。ボタンを押してテーマを引こう。</p>
+</header>
+
+<div class="status-bar">
+  <span class="dot loading" id="dot"></span>
+  <span id="status-text">スプレッドシートに接続中...</span>
+</div>
+
+<div class="card" id="card">
+  <div class="card-empty">ガチャを回してテーマを表示</div>
+</div>
+
+<div class="actions">
+  <button class="btn-main" id="spinBtn" onclick="spin()" disabled>読み込み中...</button>
+  <button class="btn-sub" id="copybtn" onclick="copyTheme()" style="display:none;">コピー</button>
+</div>
+
+<div class="used-section" id="usedSection">
+  <div class="used-label">チームで使用済みのテーマ</div>
+  <div class="used-prog" id="progText"></div>
+  <div class="used-tags" id="tagList"></div>
+  <button class="btn-reset" onclick="resetAll()">リセット（全テーマを再び引けるようにする）</button>
+</div>
+
+<footer>スプレッドシートと連携してチーム全員で使用済みテーマを共有します</footer>
+
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzzZz1oUbzOkBy0EL15fpkI5TJT2ElJ90L86aygLm0JUtKZsulRxfH5F_h8ZAH_Kqhzpg/exec';
+
+const themes = [
+  { id: 0, category: "習慣・ルーティン", theme: "最近、仕事や日常で「これは便利だ」と感じたルーティンや習慣を教えてください。", desc: "朝のルーティン、仕事の段取りなど、意外なこだわりが見えてきます。", hint: "例：「毎朝コーヒーを淹れながら今日のタスクを整理する」など" },
+  { id: 1, category: "ツール・ガジェット", theme: "最近いちばん「買ってよかった」と思っているガジェットやアイテムは何ですか？", desc: "仕事道具からプライベートグッズまで、価値観が垣間見えます。", hint: "例：「ノイズキャンセリングイヤホンを買ってから集中力が段違い」など" },
+  { id: 2, category: "食べもの", theme: "最近ハマっている食べものや飲みものを教えてください。", desc: "グルメの話は距離感をぐっと縮めます。", hint: "例：「コンビニの新作にはまっています」など" },
+  { id: 3, category: "インプット", theme: "最近読んだ本・見たドラマ・聴いたPodcastで、人に勧めたいものはありますか？", desc: "趣味や関心領域が自然と伝わります。", hint: "例：「〇〇というPodcastを通勤中に聴いています」など" },
+  { id: 4, category: "休日の過ごし方", theme: "最近の休日で、いちばん「充電できた」と感じた過ごし方を教えてください。", desc: "リフレッシュ方法の違いが意外な盛り上がりを生みます。", hint: "例：「何もせず昼まで寝るのが最高のリセットです」など" },
+  { id: 5, category: "マイブーム", theme: "今、個人的にちょっとハマっていることや興味を持ち始めたことを教えてください。", desc: "新しい趣味のきっかけが見つかることも。", hint: "例：「最近サウナにハマりだして毎週通っています」など" },
+  { id: 6, category: "仕事の工夫", theme: "在宅ワークやオフィスワークで、自分だけの「集中するための工夫」を教えてください。", desc: "仕事術の違いから、互いのスタイルへの理解が深まります。", hint: "例：「あえてカフェで作業するとはかどります」など" },
+  { id: 7, category: "今年チャレンジしたいこと", theme: "今年やってみたいこと・挑戦したいことを1つ教えてください。", desc: "目標を宣言することで、応援し合える関係に。", hint: "例：「フルマラソンに初挑戦しようと思っています」など" },
+  { id: 8, category: "子どものころ", theme: "子どものころ夢中になっていた遊びや趣味を教えてください。", desc: "意外な共通点が見つかることも多いテーマです。", hint: "例：「ひたすらレゴを組み立てていました」など" },
+  { id: 9, category: "旅・おでかけ", theme: "最近行ってよかった場所（国内外問わず）を教えてください。", desc: "旅の話は誰でも楽しく話せる鉄板テーマ。", hint: "例：「近場の温泉に日帰りで行ったら最高でした」など" },
+  { id: 10, category: "季節の楽しみ", theme: "今の季節に関係した、個人的なお気に入りの楽しみ方を教えてください。", desc: "季節感のある話題はその場の空気をつくるのに最適です。", hint: "例：「秋になったら必ず焼き芋を食べるのが習慣です」など" },
+  { id: 11, category: "アプリ・サービス", theme: "最近よく使っているアプリやWebサービスで、おすすめのものを教えてください。", desc: "便利ツールの共有はすぐ仕事や生活に活かせます。", hint: "例：「〇〇というアプリで家計管理が劇的に楽になりました」など" },
+];
+
+let usedIds = [];
+let current = null;
+
+function setStatus(state, text) {
+  const dot = document.getElementById('dot');
+  dot.className = 'dot' + (state === 'loading' ? ' loading' : state === 'error' ? ' error' : '');
+  document.getElementById('status-text').textContent = text;
+}
+
+async function gasGet(params) {
+  const url = GAS_URL + '?' + new URLSearchParams(params);
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('network error');
+  return res.json();
+}
+
+async function loadUsed() {
+  try {
+    const data = await gasGet({ action: 'getUsed' });
+    usedIds = (data.used || []).map(Number);
+    setStatus('ok', `スプレッドシートと連携済み — ${themes.length - usedIds.length}テーマ残り`);
+    const btn = document.getElementById('spinBtn');
+    btn.disabled = false;
+    btn.textContent = 'ガチャを回す';
+    renderUsed();
+  } catch(e) {
+    setStatus('error', '接続エラー — オフラインで動作します');
+    const btn = document.getElementById('spinBtn');
+    btn.disabled = false;
+    btn.textContent = 'ガチャを回す';
+  }
+}
+
+async function spin() {
+  let pool = themes.filter(t => !usedIds.includes(t.id));
+  if (pool.length === 0) {
+    usedIds = [];
+    try { await gasGet({ action: 'reset' }); } catch(e) {}
+    pool = [...themes];
+  }
+
+  const item = pool[Math.floor(Math.random() * pool.length)];
+  current = item;
+  usedIds.push(item.id);
+
+  const card = document.getElementById('card');
+  card.style.opacity = '0';
+  card.style.transform = 'translateY(8px)';
+  setTimeout(() => {
+    card.innerHTML = `
+      <div class="badge">${item.category}</div>
+      <div class="card-theme">${item.theme}</div>
+      <div class="card-desc">${item.desc}</div>
+      <div class="card-hint">💡 ヒント: ${item.hint}</div>
+    `;
+    card.style.opacity = '1';
+    card.style.transform = 'translateY(0)';
+  }, 180);
+
+  const copybtn = document.getElementById('copybtn');
+  copybtn.style.display = 'inline-block';
+  copybtn.textContent = 'コピー';
+  copybtn.classList.remove('success');
+
+  setStatus('loading', 'スプレッドシートに記録中...');
+  renderUsed();
+
+  try {
+    await gasGet({ action: 'addUsed', id: item.id });
+    setStatus('ok', `スプレッドシートと連携済み — ${themes.length - usedIds.length}テーマ残り`);
+  } catch(e) {
+    setStatus('error', '記録に失敗しました（ローカルのみ更新）');
+  }
+}
+
+function renderUsed() {
+  const section = document.getElementById('usedSection');
+  const tagList = document.getElementById('tagList');
+  const prog = document.getElementById('progText');
+  if (usedIds.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  prog.textContent = `${usedIds.length} / ${themes.length} 使用済み`;
+  tagList.innerHTML = usedIds.map(id => {
+    const t = themes.find(x => x.id === id);
+    return t ? `<span class="used-tag">${t.category}</span>` : '';
+  }).join('');
+}
+
+async function resetAll() {
+  if (!confirm('使用済みテーマをリセットしますか？\nスプレッドシートの記録もすべて削除されます。')) return;
+  setStatus('loading', 'リセット中...');
+  try {
+    await gasGet({ action: 'reset' });
+    usedIds = [];
+    setStatus('ok', `スプレッドシートと連携済み — ${themes.length}テーマ残り`);
+    renderUsed();
+  } catch(e) {
+    setStatus('error', 'リセットに失敗しました');
+  }
+}
+
+function copyTheme() {
+  if (!current) return;
+  navigator.clipboard.writeText(current.theme).then(() => {
+    const btn = document.getElementById('copybtn');
+    btn.textContent = 'コピー完了!';
+    btn.classList.add('success');
+    setTimeout(() => {
+      btn.textContent = 'コピー';
+      btn.classList.remove('success');
+    }, 1800);
+  });
+}
+
+loadUsed();
+</script>
+</body>
+</html>
