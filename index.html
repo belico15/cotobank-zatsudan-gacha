@@ -231,6 +231,16 @@ async function gasGet(params) {
   return res.json();
 }
 
+async function gasPost(data) {
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error('network error');
+  return res.json();
+}
+
 async function loadUsed() {
   try {
     const data = await gasGet({ action: 'getUsed' });
@@ -283,7 +293,7 @@ async function spin() {
   renderUsed();
 
   try {
-    await gasGet({ action: 'addUsed', id: item.id, theme: item.theme });
+    await gasPost({ action: 'addUsed', id: item.id, theme: item.theme });
     setStatus('ok', `スプレッドシートと連携済み — ${themes.length - usedIds.length}テーマ残り`);
   } catch(e) {
     setStatus('error', '記録に失敗しました（ローカルのみ更新）');
