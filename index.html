@@ -573,7 +573,10 @@ async function loadUsed() {
 async function spin() {
   let pool = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id));
   if (pool.length === 0) {
+    const ok = confirm(`「${currentTeam}」の全テーマを使い切りました！\nリセットして最初から使えるようにしますか？\n\n※スプレッドシートの使用履歴はすべて削除されます`);
+    if (!ok) return;
     usedIds = [];
+    skippedIds = [];
     try { await gasGet({ action: 'reset', team: currentTeam }); } catch(e) {}
     pool = themes.filter(t => !skippedIds.includes(t.id));
     if (pool.length === 0) pool = [...themes];
