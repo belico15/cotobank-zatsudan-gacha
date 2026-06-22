@@ -430,6 +430,13 @@ function setStatus(state, text) {
 function updateStatus() {
   const remaining = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id)).length;
   const skipCount = skippedIds.length;
+  if (remaining === 0) {
+    setStatus('ok', `「${currentTeam}」の全テーマを使い切りました — 下のリセットボタンで最初から始め直せます`);
+    const btn = document.getElementById('spinBtn');
+    btn.disabled = true;
+    btn.textContent = '全テーマ使用済み';
+    return;
+  }
   let msg = `スプレッドシートと連携済み — ${remaining}テーマ残り`;
   if (skipCount > 0) msg += `（${skipCount}件スキップ中）`;
   setStatus('ok', msg);
@@ -558,9 +565,10 @@ async function loadUsed() {
     ]);
     usedIds = (usedData.used || []).map(Number);
     skippedIds = (skippedData.skipped || []).map(Number);
-    updateStatus();
+    updateStatus(); // 全テーマ使用済みの場合はここでボタンを無効化
+    const remaining = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id)).length;
     const btn = document.getElementById('spinBtn');
-    btn.disabled = false; btn.textContent = 'ガチャを回す';
+    if (remaining > 0) { btn.disabled = false; btn.textContent = 'ガチャを回す'; }
     renderUsed();
   } catch(e) {
     setStatus('error', '接続エラー — オフラインで動作します');
@@ -572,15 +580,7 @@ async function loadUsed() {
 // ===== ガチャ本体 =====
 async function spin() {
   let pool = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id));
-  if (pool.length === 0) {
-    const ok = confirm(`「${currentTeam}」の全テーマを使い切りました！\nリセットして最初から使えるようにしますか？\n\n※スプレッドシートの使用履歴はすべて削除されます`);
-    if (!ok) return;
-    usedIds = [];
-    skippedIds = [];
-    try { await gasGet({ action: 'reset', team: currentTeam }); } catch(e) {}
-    pool = themes.filter(t => !skippedIds.includes(t.id));
-    if (pool.length === 0) pool = [...themes];
-  }
+  if (pool.length === 0) return; // 全テーマ使用済み（リセットは手動ボタンのみ）
 
   const item = pool[Math.floor(Math.random() * pool.length)];
   current = item;
