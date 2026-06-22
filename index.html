@@ -275,31 +275,6 @@
     margin-top: 4px;
   }
 
-  /* 使用済み */
-  .used-section {
-    width: 100%; max-width: 520px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 1.25rem 1.5rem;
-    display: none;
-  }
-  .used-label {
-    font-size: 11px; font-weight: 700;
-    color: var(--text-hint); letter-spacing: 0.08em;
-    margin-bottom: 6px;
-  }
-  .used-prog { font-size: 12px; color: var(--text-hint); margin-bottom: 10px; }
-  .used-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
-  .used-tag {
-    font-size: 12px; color: var(--text-sub);
-    background: var(--surface2);
-    border-radius: var(--radius-sm);
-    padding: 3px 10px;
-  }
-  .used-note {
-    font-size: 11px; color: var(--text-hint); margin-top: 4px;
-  }
 
   footer {
     margin-top: 3rem; font-size: 11px;
@@ -349,12 +324,6 @@
   <button class="btn-sub" id="copybtn" onclick="copyTheme()" style="display:none;">コピー</button>
 </div>
 
-<div class="used-section" id="usedSection">
-  <div class="used-label">チームで使用済みのテーマ</div>
-  <div class="used-prog" id="progText"></div>
-  <div class="used-tags" id="tagList"></div>
-  <div class="used-note">※ 使用済みテーマはAIが毎回参照して除外します</div>
-</div>
 
 <!-- ルーレット -->
 <div class="roulette-section" id="rouletteSection" style="display:none;">
@@ -712,15 +681,7 @@ function hideRoulette() {
 }
 
 function renderUsed() {
-  const section = document.getElementById('usedSection');
-  const tagList = document.getElementById('tagList');
-  const prog = document.getElementById('progText');
-  if (usedHistory.length === 0) { section.style.display = 'none'; return; }
-  section.style.display = 'block';
-  prog.textContent = `${usedHistory.length}個のテーマを使用済み`;
-  tagList.innerHTML = usedHistory.map(h =>
-    h.category ? `<span class="used-tag" title="${h.theme}">${h.category}</span>` : ''
-  ).join('');
+  // 表示なし（usedHistoryはAIの重複除外用にメモリ上だけで保持）
 }
 
 function copyTheme() {
