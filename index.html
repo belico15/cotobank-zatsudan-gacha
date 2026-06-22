@@ -297,13 +297,9 @@
     border-radius: var(--radius-sm);
     padding: 3px 10px;
   }
-  .btn-reset {
-    font-family: 'Noto Sans JP', sans-serif;
-    font-size: 12px; color: var(--text-hint);
-    background: none; border: none;
-    cursor: pointer; text-decoration: underline; padding: 0;
+  .used-note {
+    font-size: 11px; color: var(--text-hint); margin-top: 4px;
   }
-  .btn-reset:hover { color: var(--text-sub); }
 
   footer {
     margin-top: 3rem; font-size: 11px;
@@ -357,7 +353,7 @@
   <div class="used-label">チームで使用済みのテーマ</div>
   <div class="used-prog" id="progText"></div>
   <div class="used-tags" id="tagList"></div>
-  <button class="btn-reset" onclick="resetAll()">リセット（全テーマを再び引けるようにする）</button>
+  <div class="used-note">※ 使用済みテーマはAIが毎回参照して除外します</div>
 </div>
 
 <!-- ルーレット -->
@@ -400,6 +396,7 @@ const themes = [
   { id: 9, category: "旅・おでかけ", theme: "最近行ってよかった場所（国内外問わず）を教えてください。", desc: "旅の話は誰でも楽しく話せる鉄板テーマ。", hint: "例：「近場の温泉に日帰りで行ったら最高でした」など" },
   { id: 10, category: "季節の楽しみ", theme: "今の季節に関係した、個人的なお気に入りの楽しみ方を教えてください。", desc: "季節感のある話題はその場の空気をつくるのに最適です。", hint: "例：「秋になったら必ず焼き芋を食べるのが習慣です」など" },
   { id: 11, category: "アプリ・サービス", theme: "最近よく使っているアプリやWebサービスで、おすすめのものを教えてください。", desc: "便利ツールの共有はすぐ仕事や生活に活かせます。", hint: "例：「〇〇というアプリで家計管理が劇的に楽になりました」など" },
+  // ↓ AI生成が失敗したときのフォールバック用（通常はGemini APIが動的生成）
   { id: 12, category: "健康・運動", theme: "最近始めた（または気になっている）健康習慣や運動を教えてください。", desc: "運動・食事・睡眠改善など、健康への取り組みは話が尽きません。", hint: "例：「毎朝10分のストレッチを始めた」「水を1日2リットル飲むようにした」など" },
   { id: 13, category: "映画・ドラマ・アニメ", theme: "最近見て印象に残っている映画・ドラマ・アニメを教えてください。", desc: "エンタメの話は共通の話題が見つかりやすく盛り上がります。", hint: "例：「〇〇を見て主人公の考え方に影響を受けた」「何周も見ているお気に入りがある」など" },
   { id: 14, category: "音楽", theme: "最近よく聴いている音楽やアーティストを教えてください。", desc: "音楽の趣味は個性が出やすく、意外な共通点が見つかることも。", hint: "例：「作業中はずっと同じアルバムをリピートしている」「最近〇〇ジャンルにはまった」など" },
@@ -454,8 +451,9 @@ const themes = [
 
 // ===== 状態 =====
 let currentTeam = '開発';
-let usedIds = [];
-let skippedIds = [];
+// usedHistory: スプシから取得した使用済みテーマ一覧 [{id, category, theme}]
+// AIが毎回これを参照して重複しないテーマを生成する
+let usedHistory = [];
 let current = null;
 
 // ===== ルーレット状態 =====
@@ -478,25 +476,11 @@ function setStatus(state, text) {
 }
 
 function updateStatus() {
-  const remaining = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id)).length;
-  const skipCount = skippedIds.length;
-  if (remaining === 0) {
-    setStatus('ok', `「${currentTeam}」の全テーマを使い切りました！次のガチャで自動的にリセットします`);
-    return;
-  }
-  let msg = `スプレッドシートと連携済み — ${remaining}テーマ残り`;
-  if (skipCount > 0) msg += `（${skipCount}件スキップ中）`;
+  const count = usedHistory.length;
+  const msg = count === 0
+    ? `AIが毎回新しいテーマを生成します`
+    : `スプレッドシートと連携済み — ${count}テーマ使用済み`;
   setStatus('ok', msg);
-}
-
-// usedIds（プールの使用済み管理）はローカルストレージで管理
-// スプシは積み重ね記録用のみ（削除しない）
-function loadUsedFromLocal() {
-  const saved = localStorage.getItem(`gacha_usedIds_${currentTeam}`);
-  return saved ? JSON.parse(saved) : [];
-}
-function saveUsedToLocal() {
-  localStorage.setItem(`gacha_usedIds_${currentTeam}`, JSON.stringify(usedIds));
 }
 
 async function gasGet(params) {
@@ -533,8 +517,7 @@ async function loadTeams() {
 function onTeamChange() {
   const select = document.getElementById('teamSelect');
   currentTeam = select.value;
-  usedIds = [];
-  skippedIds = [];
+  usedHistory = [];
   current = null;
   document.getElementById('card').innerHTML = '<div class="card-empty">ガチャを回してテーマを表示</div>';
   document.getElementById('useBtn').style.display = 'none';
@@ -592,7 +575,7 @@ async function confirmRenameTeam() {
     if (option) { option.value = newName; option.textContent = newName; }
     currentTeam = newName;
     toggleRenameTeam();
-    setStatus('ok', `「${newName}」に変更しました — ${themes.length - usedIds.length}テーマ残り`);
+    setStatus('ok', `「${newName}」に変更しました`);
   } catch(e) {
     setStatus('error', 'チーム名の変更に失敗しました');
   }
@@ -615,11 +598,14 @@ async function addNewTeam() {
 
 // ===== スプシ連携 =====
 async function loadUsed() {
-  usedIds = loadUsedFromLocal(); // プール状態はローカルから（スプシは記録用のみ）
+  // スプシから使用済みテーマ履歴を取得（AIが次回以降の生成で重複を避けるために使う）
   try {
-    const skippedData = await gasGet({ action: 'getSkipped', team: currentTeam });
-    skippedIds = (skippedData.skipped || []).map(Number);
+    const data = await gasGet({ action: 'getUsed', team: currentTeam });
+    usedHistory = (data.used || []).map(item =>
+      typeof item === 'object' ? item : { id: item, category: '', theme: '' }
+    );
   } catch(e) {
+    usedHistory = [];
     setStatus('error', '接続エラー — オフラインで動作します');
   }
   updateStatus();
@@ -630,17 +616,32 @@ async function loadUsed() {
 
 // ===== ガチャ本体 =====
 async function spin() {
-  let pool = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id));
-  if (pool.length === 0) {
-    // 12種すべて使い切り → ローカルをリセットしてもう一周（スプシ記録はそのまま保持）
-    usedIds = [];
-    saveUsedToLocal();
-    pool = themes.filter(t => !skippedIds.includes(t.id));
-    if (pool.length === 0) pool = [...themes];
+  const btn = document.getElementById('spinBtn');
+  btn.disabled = true;
+  btn.textContent = 'AIが生成中... ✨';
+  btn.style.display = 'inline-block';
+  document.getElementById('useBtn').style.display = 'none';
+  document.getElementById('skipBtn').style.display = 'none';
+
+  let item = null;
+  try {
+    const data = await gasGet({ action: 'generateTheme', team: currentTeam });
+    if (data.error === 'API_KEY_NOT_SET') {
+      item = getFallbackTheme();
+      setStatus('error', 'Gemini APIキー未設定 — フォールバックテーマを使用中');
+    } else if (data.error) {
+      throw new Error(data.error);
+    } else {
+      item = data.theme;
+      updateStatus();
+    }
+  } catch(e) {
+    item = getFallbackTheme();
+    setStatus('error', 'AI生成に失敗 — フォールバックテーマを使用中');
   }
 
-  const item = pool[Math.floor(Math.random() * pool.length)];
   current = item;
+  btn.textContent = 'ガチャを回す';
 
   const card = document.getElementById('card');
   card.style.opacity = '0'; card.style.transform = 'translateY(8px)';
@@ -654,28 +655,32 @@ async function spin() {
     card.style.opacity = '1'; card.style.transform = 'translateY(0)';
   }, 180);
 
-  document.getElementById('spinBtn').style.display = 'none';
+  btn.style.display = 'none';
   document.getElementById('skipBtn').style.display = 'inline-block';
   const copybtn = document.getElementById('copybtn');
   copybtn.style.display = 'inline-block'; copybtn.textContent = 'コピー';
   copybtn.classList.remove('success');
 
-  // ルーレットは常に表示。メンバー未登録時は「利用する」もフォールバックとして表示
   document.getElementById('rouletteSection').style.display = 'block';
   document.getElementById('wheelResult').textContent = '';
   document.getElementById('spinWheelBtn').disabled = presentMembers.length === 0;
   drawWheel();
 
-  // メンバーが設定済みならルーレットをメインにして「利用する」は隠す
-  // 未設定なら「利用する」を残す（フォールバック）
   document.getElementById('useBtn').style.display = members.length > 0 ? 'none' : 'inline-block';
+}
+
+// AI生成失敗時のフォールバック（使用済み履歴と被らないものを選ぶ）
+function getFallbackTheme() {
+  const usedTexts = usedHistory.map(h => h.theme);
+  const pool = themes.filter(t => !usedTexts.includes(t.theme));
+  const source = pool.length > 0 ? pool : themes;
+  return source[Math.floor(Math.random() * source.length)];
 }
 
 async function useTheme() {
   if (!current) return;
   const item = current;
-  usedIds.push(item.id);
-  saveUsedToLocal(); // プール状態をローカルに保存
+  usedHistory.push({ id: item.id, category: item.category || '', theme: item.theme });
   current = null;
   hideRoulette();
   document.getElementById('useBtn').style.display = 'none';
@@ -684,7 +689,7 @@ async function useTheme() {
   setStatus('loading', 'スプレッドシートに記録中...');
   renderUsed();
   try {
-    await gasPost({ action: 'addUsed', team: currentTeam, id: item.id, theme: item.theme });
+    await gasPost({ action: 'addUsed', team: currentTeam, id: item.id, category: item.category || '', theme: item.theme });
     updateStatus();
   } catch(e) {
     setStatus('error', '記録に失敗しました（ローカルのみ更新）');
@@ -694,7 +699,6 @@ async function useTheme() {
 async function skipTheme() {
   if (!current) return;
   const skipped = current;
-  skippedIds.push(skipped.id);
   current = null;
   document.getElementById('useBtn').style.display = 'none';
   document.getElementById('skipBtn').style.display = 'none';
@@ -711,23 +715,12 @@ function renderUsed() {
   const section = document.getElementById('usedSection');
   const tagList = document.getElementById('tagList');
   const prog = document.getElementById('progText');
-  if (usedIds.length === 0) { section.style.display = 'none'; return; }
+  if (usedHistory.length === 0) { section.style.display = 'none'; return; }
   section.style.display = 'block';
-  prog.textContent = `${usedIds.length} / ${themes.length} 使用済み`;
-  tagList.innerHTML = usedIds.map(id => {
-    const t = themes.find(x => x.id === id);
-    return t ? `<span class="used-tag">${t.category}</span>` : '';
-  }).join('');
-}
-
-function resetAll() {
-  if (!confirm(`「${currentTeam}」の使用済みテーマをリセットしますか？\n（スプレッドシートの記録は残ります）`)) return;
-  usedIds = [];
-  saveUsedToLocal();
-  updateStatus();
-  const btn = document.getElementById('spinBtn');
-  btn.disabled = false; btn.textContent = 'ガチャを回す';
-  renderUsed();
+  prog.textContent = `${usedHistory.length}個のテーマを使用済み`;
+  tagList.innerHTML = usedHistory.map(h =>
+    h.category ? `<span class="used-tag" title="${h.theme}">${h.category}</span>` : ''
+  ).join('');
 }
 
 function copyTheme() {
@@ -939,8 +932,7 @@ function spinWheel() {
 async function recordUsedFromRoulette() {
   if (!current) return;
   const item = current;
-  usedIds.push(item.id);
-  saveUsedToLocal(); // プール状態をローカルに保存
+  usedHistory.push({ id: item.id, category: item.category || '', theme: item.theme });
   current = null;
 
   // ルーレット結果は残したまま、ガチャボタンを戻す
@@ -951,7 +943,7 @@ async function recordUsedFromRoulette() {
   setStatus('loading', 'スプレッドシートに記録中...');
   renderUsed();
   try {
-    await gasPost({ action: 'addUsed', team: currentTeam, id: item.id, theme: item.theme });
+    await gasPost({ action: 'addUsed', team: currentTeam, id: item.id, category: item.category || '', theme: item.theme });
     updateStatus();
   } catch(e) {
     setStatus('error', '記録に失敗しました（ローカルのみ更新）');
