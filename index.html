@@ -436,12 +436,11 @@ async function useTheme() {
 }
 
 function skipTheme() {
-  // スプシに記録せず、次回また引けるようにプールに戻す
+  // スプシに記録せず、次のテーマをすぐに引く
   current = null;
   document.getElementById('useBtn').style.display = 'none';
   document.getElementById('skipBtn').style.display = 'none';
-  document.getElementById('spinBtn').style.display = 'inline-block';
-  setStatus('ok', `スプレッドシートと連携済み — ${themes.length - usedIds.length}テーマ残り`);
+  spin();
 }
 
 function renderUsed() {
