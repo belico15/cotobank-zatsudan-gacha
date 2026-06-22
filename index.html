@@ -610,6 +610,7 @@ async function spin() {
   }
 
   current = item;
+  btn.disabled = false;
   btn.textContent = 'ガチャを回す';
 
   const card = document.getElementById('card');
