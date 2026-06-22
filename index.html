@@ -60,6 +60,7 @@
   header h1 { font-size: 26px; font-weight: 700; letter-spacing: 0.05em; }
   header p { font-size: 13px; color: var(--text-sub); margin-top: 6px; }
 
+  /* チーム選択 */
   .team-bar {
     display: flex; align-items: center; gap: 8px;
     margin-bottom: 0.75rem;
@@ -94,6 +95,7 @@
   }
   .team-input:focus { border-color: var(--accent); }
 
+  /* ステータス */
   .status-bar {
     display: flex; align-items: center; gap: 7px;
     font-size: 12px; color: var(--text-hint);
@@ -108,6 +110,7 @@
   .dot.error { background: var(--red); }
   @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 
+  /* テーマカード */
   .card {
     width: 100%; max-width: 520px; min-height: 190px;
     background: var(--surface);
@@ -120,7 +123,6 @@
     transition: opacity 0.2s, transform 0.2s;
     margin-bottom: 1.25rem;
   }
-
   .badge {
     font-size: 11px; font-weight: 700;
     letter-spacing: 0.08em;
@@ -137,12 +139,12 @@
   }
   .card-empty { font-size: 14px; color: var(--text-hint); }
 
+  /* ボタン */
   .actions {
     display: flex; gap: 10px; flex-wrap: wrap;
     justify-content: center; margin-bottom: 1.5rem;
     width: 100%; max-width: 520px;
   }
-
   .btn-main {
     font-family: 'Noto Sans JP', sans-serif;
     font-size: 15px; font-weight: 700;
@@ -154,7 +156,6 @@
   .btn-main:hover { background: var(--accent-dark); }
   .btn-main:active { transform: scale(0.97); }
   .btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
-
   .btn-use {
     font-family: 'Noto Sans JP', sans-serif;
     font-size: 15px; font-weight: 700;
@@ -165,7 +166,7 @@
   }
   .btn-use:hover { filter: brightness(1.1); }
   .btn-use:active { transform: scale(0.97); }
-
+  .btn-use:disabled { opacity: 0.5; cursor: not-allowed; }
   .btn-sub {
     font-family: 'Noto Sans JP', sans-serif;
     font-size: 13px; padding: 0.6rem 1.2rem;
@@ -177,6 +178,104 @@
   .btn-sub:hover { background: var(--surface2); }
   .btn-sub.success { color: var(--accent); border-color: var(--accent); }
 
+  /* ルーレット */
+  .roulette-section {
+    width: 100%; max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .roulette-title {
+    font-size: 12px; font-weight: 700;
+    color: var(--text-hint); letter-spacing: 0.08em;
+    margin-bottom: 0.75rem;
+  }
+  .present-toggles {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 1.25rem; min-height: 34px;
+    align-items: center;
+  }
+  .member-toggle-btn {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px; padding: 5px 14px;
+    border-radius: 99px;
+    border: 1px solid var(--border-mid);
+    background: var(--surface2); color: var(--text-hint);
+    cursor: pointer; transition: all 0.15s;
+    text-decoration: line-through;
+  }
+  .member-toggle-btn.present {
+    background: var(--accent-light); color: var(--accent-text);
+    border-color: var(--accent);
+    text-decoration: none;
+  }
+  .member-empty-hint {
+    font-size: 12px; color: var(--text-hint);
+  }
+  .wheel-wrap {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 1rem;
+  }
+  .wheel-pointer-box {
+    position: relative; width: 280px; height: 280px;
+  }
+  .wheel-pointer {
+    position: absolute; top: -4px; left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 22px solid var(--red);
+    z-index: 10; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));
+  }
+  #wheelCanvas {
+    border-radius: 50%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    display: block;
+  }
+  .wheel-result {
+    font-size: 22px; font-weight: 700;
+    color: var(--accent); min-height: 32px;
+    text-align: center; letter-spacing: 0.03em;
+  }
+  .member-manage {
+    margin-top: 1.25rem;
+    border-top: 1px solid var(--border);
+    padding-top: 1rem;
+  }
+  .member-manage > summary {
+    font-size: 12px; color: var(--text-hint);
+    cursor: pointer; user-select: none; list-style: none;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .member-manage > summary::-webkit-details-marker { display: none; }
+  .member-manage > summary::before { content: '▶'; font-size: 9px; }
+  .member-manage[open] > summary::before { content: '▼'; }
+  .member-list-items {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    margin: 10px 0; min-height: 28px; align-items: center;
+  }
+  .member-item {
+    display: flex; align-items: center; gap: 4px;
+    font-size: 12px; color: var(--text-sub);
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 3px 6px 3px 10px;
+  }
+  .member-item button {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-hint); font-size: 15px; line-height: 1;
+    padding: 0; transition: color 0.1s;
+  }
+  .member-item button:hover { color: var(--red); }
+  .member-add-row {
+    display: flex; gap: 8px; align-items: center;
+    margin-top: 4px;
+  }
+
+  /* 使用済み */
   .used-section {
     width: 100%; max-width: 520px;
     background: var(--surface);
@@ -254,6 +353,28 @@
   <button class="btn-sub" id="copybtn" onclick="copyTheme()" style="display:none;">コピー</button>
 </div>
 
+<!-- ルーレット -->
+<div class="roulette-section" id="rouletteSection" style="display:none;">
+  <div class="roulette-title">誰から話す？</div>
+  <div class="present-toggles" id="presentToggles"></div>
+  <div class="wheel-wrap">
+    <div class="wheel-pointer-box">
+      <div class="wheel-pointer"></div>
+      <canvas id="wheelCanvas" width="280" height="280"></canvas>
+    </div>
+    <div class="wheel-result" id="wheelResult"></div>
+    <button class="btn-use" id="spinWheelBtn" onclick="spinWheel()">🎡 ルーレットを回す</button>
+  </div>
+  <details class="member-manage">
+    <summary>メンバー管理</summary>
+    <div class="member-list-items" id="memberListItems"></div>
+    <div class="member-add-row">
+      <input type="text" id="memberAddInput" class="team-input" placeholder="名前を入力（例：田中、佐藤）">
+      <button class="btn-sub" onclick="addMember()">追加</button>
+    </div>
+  </details>
+</div>
+
 <div class="used-section" id="usedSection">
   <div class="used-label">チームで使用済みのテーマ</div>
   <div class="used-prog" id="progText"></div>
@@ -281,15 +402,37 @@ const themes = [
   { id: 11, category: "アプリ・サービス", theme: "最近よく使っているアプリやWebサービスで、おすすめのものを教えてください。", desc: "便利ツールの共有はすぐ仕事や生活に活かせます。", hint: "例：「〇〇というアプリで家計管理が劇的に楽になりました」など" },
 ];
 
+// ===== 状態 =====
 let currentTeam = '開発';
 let usedIds = [];
 let skippedIds = [];
 let current = null;
 
+// ===== ルーレット状態 =====
+let members = [];       // チームのメンバー全員（localStorage保存）
+let presentMembers = []; // 今日出席しているメンバー
+let isSpinning = false;
+let wheelAngle = 0;
+
+const WHEEL_COLORS = [
+  '#534AB7','#1D9E75','#EF9F27','#E24B4A',
+  '#7b72d4','#4a9eda','#c46dc9','#3C8A62',
+  '#d47c4a','#6b7ab7',
+];
+
+// ===== ユーティリティ =====
 function setStatus(state, text) {
   const dot = document.getElementById('dot');
   dot.className = 'dot' + (state === 'loading' ? ' loading' : state === 'error' ? ' error' : '');
   document.getElementById('status-text').textContent = text;
+}
+
+function updateStatus() {
+  const remaining = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id)).length;
+  const skipCount = skippedIds.length;
+  let msg = `スプレッドシートと連携済み — ${remaining}テーマ残り`;
+  if (skipCount > 0) msg += `（${skipCount}件スキップ中）`;
+  setStatus('ok', msg);
 }
 
 async function gasGet(params) {
@@ -309,20 +452,18 @@ async function gasPost(data) {
   return res.json();
 }
 
+// ===== チーム管理 =====
 async function loadTeams() {
   try {
     const data = await gasGet({ action: 'getTeams' });
     const teams = data.teams || [];
     const select = document.getElementById('teamSelect');
-    // 開発を先頭に固定、それ以外をアルファベット順で追加
     const others = teams.filter(t => t !== '開発').sort();
     const allTeams = ['開発', ...others];
     select.innerHTML = allTeams.map(t =>
       `<option value="${t}"${t === currentTeam ? ' selected' : ''}>${t}</option>`
     ).join('');
-  } catch(e) {
-    // 取得失敗でも開発だけ表示されるのでそのまま続行
-  }
+  } catch(e) {}
 }
 
 function onTeamChange() {
@@ -338,17 +479,17 @@ function onTeamChange() {
   document.getElementById('spinBtn').style.display = 'inline-block';
   document.getElementById('spinBtn').disabled = true;
   document.getElementById('spinBtn').textContent = '読み込み中...';
+  hideRoulette();
+  loadMembers();
   loadUsed();
 }
 
 function toggleNewTeam() {
   const bar = document.getElementById('newTeamBar');
   const input = document.getElementById('newTeamInput');
-  document.getElementById('renameTeamBar').style.display = 'none'; // 同時に開かない
+  document.getElementById('renameTeamBar').style.display = 'none';
   if (bar.style.display === 'none') {
-    bar.style.display = 'flex';
-    input.value = '';
-    input.focus();
+    bar.style.display = 'flex'; input.value = ''; input.focus();
   } else {
     bar.style.display = 'none';
   }
@@ -357,12 +498,9 @@ function toggleNewTeam() {
 function toggleRenameTeam() {
   const bar = document.getElementById('renameTeamBar');
   const input = document.getElementById('renameTeamInput');
-  document.getElementById('newTeamBar').style.display = 'none'; // 同時に開かない
+  document.getElementById('newTeamBar').style.display = 'none';
   if (bar.style.display === 'none') {
-    bar.style.display = 'flex';
-    input.value = currentTeam; // 現在のチーム名を初期値に
-    input.select();
-    input.focus();
+    bar.style.display = 'flex'; input.value = currentTeam; input.select(); input.focus();
   } else {
     bar.style.display = 'none';
   }
@@ -373,18 +511,19 @@ async function confirmRenameTeam() {
   const newName = input.value.trim();
   if (!newName) return;
   if (newName === currentTeam) { toggleRenameTeam(); return; }
-
   const select = document.getElementById('teamSelect');
-  const alreadyExists = Array.from(select.options).some(o => o.value === newName);
-  if (alreadyExists) {
-    alert(`「${newName}」はすでに存在します。`);
-    return;
+  if (Array.from(select.options).some(o => o.value === newName)) {
+    alert(`「${newName}」はすでに存在します。`); return;
   }
-
   setStatus('loading', 'チーム名を変更中...');
   try {
     await gasPost({ action: 'renameTeam', oldName: currentTeam, newName });
-    // ドロップダウンの該当オプションを更新
+    // localStorageのメンバーキーも移行
+    const savedMembers = localStorage.getItem(`gacha_members_${currentTeam}`);
+    if (savedMembers) {
+      localStorage.setItem(`gacha_members_${newName}`, savedMembers);
+      localStorage.removeItem(`gacha_members_${currentTeam}`);
+    }
     const option = Array.from(select.options).find(o => o.value === currentTeam);
     if (option) { option.value = newName; option.textContent = newName; }
     currentTeam = newName;
@@ -400,12 +539,9 @@ async function addNewTeam() {
   const name = input.value.trim();
   if (!name) return;
   const select = document.getElementById('teamSelect');
-  // すでに同名チームがあれば追加しない
-  const exists = Array.from(select.options).some(o => o.value === name);
-  if (!exists) {
+  if (!Array.from(select.options).some(o => o.value === name)) {
     const option = document.createElement('option');
-    option.value = name;
-    option.textContent = name;
+    option.value = name; option.textContent = name;
     select.appendChild(option);
   }
   select.value = name;
@@ -413,14 +549,7 @@ async function addNewTeam() {
   onTeamChange();
 }
 
-function updateStatus() {
-  const remaining = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id)).length;
-  const skipCount = skippedIds.length;
-  let msg = `スプレッドシートと連携済み — ${remaining}テーマ残り`;
-  if (skipCount > 0) msg += `（${skipCount}件スキップ中）`;
-  setStatus('ok', msg);
-}
-
+// ===== スプシ連携 =====
 async function loadUsed() {
   try {
     const [usedData, skippedData] = await Promise.all([
@@ -431,35 +560,30 @@ async function loadUsed() {
     skippedIds = (skippedData.skipped || []).map(Number);
     updateStatus();
     const btn = document.getElementById('spinBtn');
-    btn.disabled = false;
-    btn.textContent = 'ガチャを回す';
+    btn.disabled = false; btn.textContent = 'ガチャを回す';
     renderUsed();
   } catch(e) {
     setStatus('error', '接続エラー — オフラインで動作します');
     const btn = document.getElementById('spinBtn');
-    btn.disabled = false;
-    btn.textContent = 'ガチャを回す';
+    btn.disabled = false; btn.textContent = 'ガチャを回す';
   }
 }
 
+// ===== ガチャ本体 =====
 async function spin() {
   let pool = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id));
   if (pool.length === 0) {
-    // 使用済みをリセット（スキップ中は除外したまま）
     usedIds = [];
     try { await gasGet({ action: 'reset', team: currentTeam }); } catch(e) {}
     pool = themes.filter(t => !skippedIds.includes(t.id));
-    // スキップ中も含めて全部なくなった場合は全解放
     if (pool.length === 0) pool = [...themes];
   }
 
   const item = pool[Math.floor(Math.random() * pool.length)];
   current = item;
-  // 利用する/スキップの選択を待つため、ここではusedIdsに追加しない
 
   const card = document.getElementById('card');
-  card.style.opacity = '0';
-  card.style.transform = 'translateY(8px)';
+  card.style.opacity = '0'; card.style.transform = 'translateY(8px)';
   setTimeout(() => {
     card.innerHTML = `
       <div class="badge">${item.category}</div>
@@ -467,33 +591,42 @@ async function spin() {
       <div class="card-desc">${item.desc}</div>
       <div class="card-hint">💡 ヒント: ${item.hint}</div>
     `;
-    card.style.opacity = '1';
-    card.style.transform = 'translateY(0)';
+    card.style.opacity = '1'; card.style.transform = 'translateY(0)';
   }, 180);
 
-  // ガチャボタンを隠して利用する/スキップを表示
   document.getElementById('spinBtn').style.display = 'none';
-  document.getElementById('useBtn').style.display = 'inline-block';
   document.getElementById('skipBtn').style.display = 'inline-block';
   const copybtn = document.getElementById('copybtn');
-  copybtn.style.display = 'inline-block';
-  copybtn.textContent = 'コピー';
+  copybtn.style.display = 'inline-block'; copybtn.textContent = 'コピー';
   copybtn.classList.remove('success');
+
+  // ルーレットがある場合：ルーレットを表示（利用するボタンは隠す）
+  // ルーレットがない場合：利用するボタンを表示
+  if (members.length > 0) {
+    document.getElementById('useBtn').style.display = 'none';
+    document.getElementById('rouletteSection').style.display = 'block';
+    document.getElementById('wheelResult').textContent = '';
+    document.getElementById('spinWheelBtn').disabled = false;
+    drawWheel();
+  } else {
+    document.getElementById('useBtn').style.display = 'inline-block';
+    document.getElementById('rouletteSection').style.display = 'none';
+  }
 }
 
 async function useTheme() {
   if (!current) return;
-  usedIds.push(current.id);
-
+  const item = current;
+  usedIds.push(item.id);
+  current = null;
+  hideRoulette();
   document.getElementById('useBtn').style.display = 'none';
   document.getElementById('skipBtn').style.display = 'none';
   document.getElementById('spinBtn').style.display = 'inline-block';
-
   setStatus('loading', 'スプレッドシートに記録中...');
   renderUsed();
-
   try {
-    await gasPost({ action: 'addUsed', team: currentTeam, id: current.id, theme: current.theme });
+    await gasPost({ action: 'addUsed', team: currentTeam, id: item.id, theme: item.theme });
     updateStatus();
   } catch(e) {
     setStatus('error', '記録に失敗しました（ローカルのみ更新）');
@@ -507,9 +640,13 @@ async function skipTheme() {
   current = null;
   document.getElementById('useBtn').style.display = 'none';
   document.getElementById('skipBtn').style.display = 'none';
-  // バックグラウンドで記録（次のスピンをブロックしない）
   gasPost({ action: 'addSkipped', team: currentTeam, id: skipped.id, theme: skipped.theme }).catch(() => {});
   spin();
+}
+
+function hideRoulette() {
+  document.getElementById('rouletteSection').style.display = 'none';
+  document.getElementById('wheelResult').textContent = '';
 }
 
 function renderUsed() {
@@ -542,16 +679,223 @@ function copyTheme() {
   if (!current) return;
   navigator.clipboard.writeText(current.theme).then(() => {
     const btn = document.getElementById('copybtn');
-    btn.textContent = 'コピー完了!';
-    btn.classList.add('success');
-    setTimeout(() => {
-      btn.textContent = 'コピー';
-      btn.classList.remove('success');
-    }, 1800);
+    btn.textContent = 'コピー完了!'; btn.classList.add('success');
+    setTimeout(() => { btn.textContent = 'コピー'; btn.classList.remove('success'); }, 1800);
   });
 }
 
-// Enterキー・Escキー対応
+// ===== ルーレット =====
+function loadMembers() {
+  const saved = localStorage.getItem(`gacha_members_${currentTeam}`);
+  members = saved ? JSON.parse(saved) : [];
+  presentMembers = [...members]; // デフォルト全員出席
+  renderMemberToggles();
+  renderMemberList();
+  drawWheel();
+}
+
+function saveMembers() {
+  localStorage.setItem(`gacha_members_${currentTeam}`, JSON.stringify(members));
+}
+
+function renderMemberToggles() {
+  const container = document.getElementById('presentToggles');
+  if (members.length === 0) {
+    container.innerHTML = '<span class="member-empty-hint">↓ メンバー管理からメンバーを追加してください</span>';
+    return;
+  }
+  container.innerHTML = members.map(m => {
+    const isPresent = presentMembers.includes(m);
+    // エスケープ処理（名前に ' が含まれる場合を考慮）
+    const escaped = m.replace(/'/g, '&#39;');
+    return `<button class="member-toggle-btn${isPresent ? ' present' : ''}" onclick="togglePresent('${escaped}')">${m}</button>`;
+  }).join('');
+}
+
+function renderMemberList() {
+  const list = document.getElementById('memberListItems');
+  if (members.length === 0) {
+    list.innerHTML = '<span style="font-size:12px;color:var(--text-hint);">メンバーがいません</span>';
+    return;
+  }
+  list.innerHTML = members.map((m, i) => {
+    const escaped = m.replace(/'/g, '&#39;');
+    return `
+      <div class="member-item">
+        <span>${m}</span>
+        <button onclick="removeMember('${escaped}')" title="削除">×</button>
+      </div>`;
+  }).join('');
+}
+
+function togglePresent(name) {
+  if (presentMembers.includes(name)) {
+    presentMembers = presentMembers.filter(m => m !== name);
+  } else {
+    presentMembers.push(name);
+  }
+  renderMemberToggles();
+  drawWheel();
+}
+
+function addMember() {
+  const input = document.getElementById('memberAddInput');
+  const name = input.value.trim();
+  if (!name || members.includes(name)) return;
+  members.push(name);
+  presentMembers.push(name);
+  saveMembers();
+  renderMemberToggles();
+  renderMemberList();
+  drawWheel();
+  input.value = '';
+  input.focus();
+}
+
+function removeMember(name) {
+  members = members.filter(m => m !== name);
+  presentMembers = presentMembers.filter(m => m !== name);
+  saveMembers();
+  renderMemberToggles();
+  renderMemberList();
+  drawWheel();
+}
+
+function drawWheel() {
+  const canvas = document.getElementById('wheelCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const radius = cx - 4;
+  const n = presentMembers.length;
+
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (n === 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#e8e5e0';
+    ctx.fill();
+    ctx.fillStyle = '#a09d99';
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('メンバーを追加してね', cx, cy);
+    return;
+  }
+
+  const segAngle = (Math.PI * 2) / n;
+  for (let i = 0; i < n; i++) {
+    const start = wheelAngle + i * segAngle;
+    const end = start + segAngle;
+
+    // セグメント
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, radius, start, end);
+    ctx.closePath();
+    ctx.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length];
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // 名前テキスト
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(start + segAngle / 2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#ffffff';
+    const fontSize = Math.max(10, Math.min(15, Math.floor(180 / n)));
+    ctx.font = `bold ${fontSize}px 'Noto Sans JP', sans-serif`;
+    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+    ctx.shadowBlur = 3;
+    const maxLen = 5;
+    const label = presentMembers[i].length > maxLen
+      ? presentMembers[i].slice(0, maxLen) + '…'
+      : presentMembers[i];
+    ctx.fillText(label, radius - 10, fontSize * 0.4);
+    ctx.restore();
+  }
+
+  // 中心の白丸
+  ctx.beginPath();
+  ctx.arc(cx, cy, 16, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.shadowColor = 'rgba(0,0,0,0.15)';
+  ctx.shadowBlur = 4;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+}
+
+function spinWheel() {
+  if (isSpinning || presentMembers.length === 0) return;
+  isSpinning = true;
+  document.getElementById('spinWheelBtn').disabled = true;
+  document.getElementById('wheelResult').textContent = '';
+
+  const n = presentMembers.length;
+  const winnerIdx = Math.floor(Math.random() * n);
+  const segAngle = (Math.PI * 2) / n;
+
+  // ポインタ（上 = -π/2）に winner セグメントの中心を合わせる
+  const winnerCenter = winnerIdx * segAngle + segAngle / 2;
+  const targetAngle = -Math.PI / 2 - winnerCenter;
+  const delta = ((targetAngle - wheelAngle) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2);
+  const totalRotation = delta + 6 * Math.PI * 2; // 6回転以上
+
+  const startAngle = wheelAngle;
+  const duration = 4000;
+  const startTime = performance.now();
+
+  function animate(now) {
+    const elapsed = now - startTime;
+    const t = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+    wheelAngle = startAngle + totalRotation * eased;
+    drawWheel();
+
+    if (t < 1) {
+      requestAnimationFrame(animate);
+    } else {
+      wheelAngle = (startAngle + totalRotation) % (Math.PI * 2);
+      isSpinning = false;
+      document.getElementById('spinWheelBtn').disabled = false;
+
+      // 結果表示
+      const winner = presentMembers[winnerIdx];
+      document.getElementById('wheelResult').textContent = `🎉 ${winner} さんから！`;
+
+      // テーマを利用済みとして記録
+      recordUsedFromRoulette();
+    }
+  }
+  requestAnimationFrame(animate);
+}
+
+async function recordUsedFromRoulette() {
+  if (!current) return;
+  const item = current;
+  usedIds.push(item.id);
+  current = null;
+
+  // ルーレット結果は残したまま、ガチャボタンを戻す
+  document.getElementById('useBtn').style.display = 'none';
+  document.getElementById('skipBtn').style.display = 'none';
+  document.getElementById('spinBtn').style.display = 'inline-block';
+
+  setStatus('loading', 'スプレッドシートに記録中...');
+  renderUsed();
+  try {
+    await gasPost({ action: 'addUsed', team: currentTeam, id: item.id, theme: item.theme });
+    updateStatus();
+  } catch(e) {
+    setStatus('error', '記録に失敗しました（ローカルのみ更新）');
+  }
+}
+
+// ===== イベント・初期化 =====
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('newTeamInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') addNewTeam();
@@ -561,10 +905,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') confirmRenameTeam();
     if (e.key === 'Escape') toggleRenameTeam();
   });
+  document.getElementById('memberAddInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addMember();
+  });
 });
 
 async function init() {
   await loadTeams();
+  loadMembers(); // localStorageから同期的に読む
   await loadUsed();
 }
 init();
