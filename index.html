@@ -352,6 +352,7 @@
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzzZz1oUbzOkBy0EL15fpkI5TJT2ElJ90L86aygLm0JUtKZsulRxfH5F_h8ZAH_Kqhzpg/exec';
 
+// 厳選テーマ（手書き・第1層）。これらを優先して出し、使い切ったら下の組み合わせ生成（第2層）に移る。
 const themes = [
   { id: 0, category: "習慣・ルーティン", theme: "最近、仕事や日常で「これは便利だ」と感じたルーティンや習慣を教えてください。", desc: "朝のルーティン、仕事の段取りなど、意外なこだわりが見えてきます。", hint: "例：「毎朝コーヒーを淹れながら今日のタスクを整理する」など" },
   { id: 1, category: "ツール・ガジェット", theme: "最近いちばん「買ってよかった」と思っているガジェットやアイテムは何ですか？", desc: "仕事道具からプライベートグッズまで、価値観が垣間見えます。", hint: "例：「ノイズキャンセリングイヤホンを買ってから集中力が段違い」など" },
@@ -418,12 +419,83 @@ const themes = [
   { id: 61, category: "ありがとうと言いたい人", theme: "最近「ありがとう」と伝えたい出来事や人物はありますか？（直接でも間接的でもOK）", desc: "感謝の話題は場の雰囲気が温かくなり、チームの絆を深めます。", hint: "例：「困ったときに助けてくれたチームメンバーに感謝している」など" },
 ];
 
+// ===== 組み合わせ生成（第2層：無限生成の素材） =====
+// 「お題ノウン × 質問フレーム」で大量のテーマを自動生成する。外部API不要。
+const GEN_TOPICS = [
+  "食べもの", "飲みもの", "音楽", "映画・ドラマ", "本・マンガ", "アプリ", "ガジェット",
+  "お気に入りの場所", "お店", "習慣", "趣味", "ゲーム", "スポーツ", "動画・YouTube",
+  "言葉・名言", "道具・文房具", "写真", "季節の行事", "おやつ・スイーツ", "コーヒー・お茶",
+  "ファッション・服", "アニメ", "ポッドキャスト", "旅・おでかけ先", "料理", "ニュース・話題",
+  "リフレッシュ方法", "朝の過ごし方", "夜の過ごし方", "週末の楽しみ",
+];
+const GEN_FRAMES = [
+  { theme: t => `最近ハマっている${t}を教えてください。`, desc: "今の関心事が伝わって、共通の話題が見つかりやすいテーマです。", hint: t => `例：最近の「${t}」で夢中になっているものを気軽に。` },
+  { theme: t => `人にすすめたい${t}を1つ教えてください。`, desc: "おすすめ情報の共有は、そのまま生活や仕事のヒントになります。", hint: t => `例：「この${t}は一度ためしてほしい」というものを。` },
+  { theme: t => `子どものころ好きだった${t}を覚えていますか？`, desc: "昔の思い出話は意外な共通点が見つかり、距離が縮まります。", hint: t => `例：子ども時代に親しんだ「${t}」を思い出してみて。` },
+  { theme: t => `ちょっとこだわっている${t}があれば教えてください。`, desc: "こだわりポイントには、その人らしさがにじみ出ます。", hint: t => `例：自分なりの「${t}」のこだわりを。` },
+  { theme: t => `最近「これはよかった」と思った${t}はありますか？`, desc: "ポジティブな発見の共有は、場の雰囲気を明るくします。", hint: t => `例：最近出会って満足した「${t}」を。` },
+  { theme: t => `最近あたらしく試した${t}があれば教えてください。`, desc: "新しい挑戦の話は、行動のきっかけを生み合えます。", hint: t => `例：はじめて手を出した「${t}」を気軽に。` },
+  { theme: t => `あなたの定番・お気に入りの${t}を教えてください。`, desc: "「いつものお気に入り」には価値観が表れます。", hint: t => `例：くり返し選んでしまう「${t}」を。` },
+  { theme: t => `この一年で印象に残った${t}を教えてください。`, desc: "一年をふり返ることで、お互いの歩みが見えてきます。", hint: t => `例：今年の「${t}」で心に残ったものを。` },
+  { theme: t => `週末によく楽しむ${t}はありますか？`, desc: "オフの過ごし方は個性が出やすく、盛り上がります。", hint: t => `例：休日の「${t}」の楽しみ方を。` },
+  { theme: t => `最近気になっている${t}はありますか？`, desc: "「気になっている段階」の話は、自然と会話が広がります。", hint: t => `例：まだ試してないけど気になる「${t}」でもOK。` },
+  { theme: t => `「もっと早く知りたかった」と思った${t}はありますか？`, desc: "後から知って得した話は、みんなの参考になります。", hint: t => `例：知って世界が変わった「${t}」を。` },
+  { theme: t => `思い出に残っている${t}を教えてください。`, desc: "エピソードのある話題は、その人の物語が垣間見えます。", hint: t => `例：忘れられない「${t}」の思い出を。` },
+];
+
+// 文字列から安定した整数IDを作る（スプシ記録・スキップ管理用の簡易ID）
+function hashId(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+// 第2層の全候補を生成（topics × frames）
+function buildGeneratedThemes() {
+  const out = [];
+  for (const topic of GEN_TOPICS) {
+    for (const f of GEN_FRAMES) {
+      const theme = f.theme(topic);
+      out.push({
+        id: hashId(theme),
+        category: topic,
+        theme,
+        desc: f.desc,
+        hint: typeof f.hint === 'function' ? f.hint(topic) : f.hint,
+      });
+    }
+  }
+  return out;
+}
+const generatedThemes = buildGeneratedThemes();
+
+// 使用済み・スキップ済みを除いた候補から1つ選ぶ。
+// 1) 厳選テーマ → 2) 組み合わせ生成 → 3)（万一全部使用済みなら）全体からランダム
+function pickLocalTheme() {
+  const excluded = new Set([...usedHistory.map(h => h.theme), ...sessionSkipped]);
+  const fromCurated = themes.filter(t => !excluded.has(t.theme));
+  if (fromCurated.length > 0) {
+    return fromCurated[Math.floor(Math.random() * fromCurated.length)];
+  }
+  const fromGenerated = generatedThemes.filter(t => !excluded.has(t.theme));
+  if (fromGenerated.length > 0) {
+    return fromGenerated[Math.floor(Math.random() * fromGenerated.length)];
+  }
+  // セーフティ：到達しないはずだが、全部使い切ったら全体からランダム
+  const all = [...themes, ...generatedThemes];
+  return all[Math.floor(Math.random() * all.length)];
+}
+
 // ===== 状態 =====
 let currentTeam = '開発';
 // usedHistory: スプシから取得した使用済みテーマ一覧 [{id, category, theme}]
-// AIが毎回これを参照して重複しないテーマを生成する
+// 毎回これを参照して、過去に出していないテーマだけを提示する（重複回避）
 let usedHistory = [];
 let current = null;
+// sessionSkipped: このセッション中にスキップしたテーマ文字列（再表示を避ける）
+let sessionSkipped = new Set();
 
 // ===== ルーレット状態 =====
 let members = [];       // チームのメンバー全員（localStorage保存）
@@ -447,7 +519,7 @@ function setStatus(state, text) {
 function updateStatus() {
   const count = usedHistory.length;
   const msg = count === 0
-    ? `AIが毎回新しいテーマを生成します`
+    ? `準備完了 — テーマを無限に生成します`
     : `スプレッドシートと連携済み — ${count}テーマ使用済み`;
   setStatus('ok', msg);
 }
@@ -487,6 +559,7 @@ function onTeamChange() {
   const select = document.getElementById('teamSelect');
   currentTeam = select.value;
   usedHistory = [];
+  sessionSkipped = new Set();
   current = null;
   document.getElementById('card').innerHTML = '<div class="card-empty">ガチャを回してテーマを表示</div>';
   document.getElementById('useBtn').style.display = 'none';
@@ -584,30 +657,14 @@ async function loadUsed() {
 }
 
 // ===== ガチャ本体 =====
-async function spin() {
+function spin() {
   const btn = document.getElementById('spinBtn');
-  btn.disabled = true;
-  btn.textContent = 'AIが生成中... ✨';
   btn.style.display = 'inline-block';
   document.getElementById('useBtn').style.display = 'none';
   document.getElementById('skipBtn').style.display = 'none';
 
-  let item = null;
-  try {
-    const data = await gasGet({ action: 'generateTheme', team: currentTeam });
-    if (data.error === 'API_KEY_NOT_SET') {
-      item = getFallbackTheme();
-      setStatus('error', 'Gemini APIキー未設定 — フォールバックテーマを使用中');
-    } else if (data.error) {
-      throw new Error(data.error);
-    } else {
-      item = data.theme;
-      updateStatus();
-    }
-  } catch(e) {
-    item = getFallbackTheme();
-    setStatus('error', 'AI生成に失敗 — フォールバックテーマを使用中');
-  }
+  const item = pickLocalTheme();
+  updateStatus();
 
   current = item;
   btn.disabled = false;
@@ -639,14 +696,6 @@ async function spin() {
   document.getElementById('useBtn').style.display = members.length > 0 ? 'none' : 'inline-block';
 }
 
-// AI生成失敗時のフォールバック（使用済み履歴と被らないものを選ぶ）
-function getFallbackTheme() {
-  const usedTexts = usedHistory.map(h => h.theme);
-  const pool = themes.filter(t => !usedTexts.includes(t.theme));
-  const source = pool.length > 0 ? pool : themes;
-  return source[Math.floor(Math.random() * source.length)];
-}
-
 async function useTheme() {
   if (!current) return;
   const item = current;
@@ -670,6 +719,7 @@ async function skipTheme() {
   if (!current) return;
   const skipped = current;
   current = null;
+  sessionSkipped.add(skipped.theme);
   document.getElementById('useBtn').style.display = 'none';
   document.getElementById('skipBtn').style.display = 'none';
   gasPost({ action: 'addSkipped', team: currentTeam, id: skipped.id, theme: skipped.theme }).catch(() => {});
