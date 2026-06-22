@@ -600,18 +600,15 @@ async function spin() {
   copybtn.style.display = 'inline-block'; copybtn.textContent = 'コピー';
   copybtn.classList.remove('success');
 
-  // ルーレットがある場合：ルーレットを表示（利用するボタンは隠す）
-  // ルーレットがない場合：利用するボタンを表示
-  if (members.length > 0) {
-    document.getElementById('useBtn').style.display = 'none';
-    document.getElementById('rouletteSection').style.display = 'block';
-    document.getElementById('wheelResult').textContent = '';
-    document.getElementById('spinWheelBtn').disabled = false;
-    drawWheel();
-  } else {
-    document.getElementById('useBtn').style.display = 'inline-block';
-    document.getElementById('rouletteSection').style.display = 'none';
-  }
+  // ルーレットは常に表示。メンバー未登録時は「利用する」もフォールバックとして表示
+  document.getElementById('rouletteSection').style.display = 'block';
+  document.getElementById('wheelResult').textContent = '';
+  document.getElementById('spinWheelBtn').disabled = presentMembers.length === 0;
+  drawWheel();
+
+  // メンバーが設定済みならルーレットをメインにして「利用する」は隠す
+  // 未設定なら「利用する」を残す（フォールバック）
+  document.getElementById('useBtn').style.display = members.length > 0 ? 'none' : 'inline-block';
 }
 
 async function useTheme() {
@@ -728,6 +725,11 @@ function renderMemberList() {
   }).join('');
 }
 
+function updateRouletteButtons() {
+  document.getElementById('spinWheelBtn').disabled = presentMembers.length === 0;
+  document.getElementById('useBtn').style.display = members.length > 0 ? 'none' : 'inline-block';
+}
+
 function togglePresent(name) {
   if (presentMembers.includes(name)) {
     presentMembers = presentMembers.filter(m => m !== name);
@@ -736,6 +738,7 @@ function togglePresent(name) {
   }
   renderMemberToggles();
   drawWheel();
+  updateRouletteButtons();
 }
 
 function addMember() {
@@ -748,6 +751,7 @@ function addMember() {
   renderMemberToggles();
   renderMemberList();
   drawWheel();
+  updateRouletteButtons();
   input.value = '';
   input.focus();
 }
