@@ -473,7 +473,7 @@ const generatedThemes = buildGeneratedThemes();
 // 使用済み・スキップ済みを除いた候補から1つ選ぶ。
 // 1) 厳選テーマ → 2) 組み合わせ生成 → 3)（万一全部使用済みなら）全体からランダム
 function pickLocalTheme() {
-  const excluded = new Set([...usedHistory.map(h => h.theme), ...sessionSkipped]);
+  const excluded = new Set([...usedHistory.map(h => h.theme), ...skippedThemes]);
   const fromCurated = themes.filter(t => !excluded.has(t.theme));
   if (fromCurated.length > 0) {
     return fromCurated[Math.floor(Math.random() * fromCurated.length)];
@@ -493,8 +493,9 @@ let currentTeam = '開発';
 // 毎回これを参照して、過去に出していないテーマだけを提示する（重複回避）
 let usedHistory = [];
 let current = null;
-// sessionSkipped: このセッション中にスキップしたテーマ文字列（再表示を避ける）
-let sessionSkipped = new Set();
+// skippedThemes: スキップ済みテーマ文字列の集合。起動時にスプシ（getSkipped, 直近1か月分）から
+// 読み込み、スキップするたびに追加する。これに含まれるテーマは出題から除外する。
+let skippedThemes = new Set();
 
 // ===== ルーレット状態 =====
 let members = [];       // チームのメンバー全員（localStorage保存）
@@ -558,7 +559,7 @@ function onTeamChange() {
   const select = document.getElementById('teamSelect');
   currentTeam = select.value;
   usedHistory = [];
-  sessionSkipped = new Set();
+  skippedThemes = new Set();
   current = null;
   document.getElementById('card').innerHTML = '<div class="card-empty">ガチャを回してテーマを表示</div>';
   document.getElementById('useBtn').style.display = 'none';
@@ -649,6 +650,13 @@ async function loadUsed() {
     usedHistory = [];
     setStatus('error', '接続エラー — オフラインで動作します');
   }
+  // スキップ履歴（直近1か月分）を取得して出題から除外する
+  try {
+    const sdata = await gasGet({ action: 'getSkipped', team: currentTeam });
+    skippedThemes = new Set((sdata.skipped || []).map(s => typeof s === 'object' ? s.theme : s));
+  } catch(e) {
+    skippedThemes = new Set();
+  }
   updateStatus();
   const btn = document.getElementById('spinBtn');
   btn.disabled = false; btn.textContent = 'ガチャを回す';
@@ -718,9 +726,10 @@ async function skipTheme() {
   if (!current) return;
   const skipped = current;
   current = null;
-  sessionSkipped.add(skipped.theme);
+  skippedThemes.add(skipped.theme);
   document.getElementById('useBtn').style.display = 'none';
   document.getElementById('skipBtn').style.display = 'none';
+  gasPost({ action: 'addSkipped', team: currentTeam, id: skipped.id, theme: skipped.theme }).catch(() => {});
   spin();
 }
 
