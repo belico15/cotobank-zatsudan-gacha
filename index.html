@@ -353,6 +353,13 @@
   <button class="btn-sub" id="copybtn" onclick="copyTheme()" style="display:none;">コピー</button>
 </div>
 
+<div class="used-section" id="usedSection">
+  <div class="used-label">チームで使用済みのテーマ</div>
+  <div class="used-prog" id="progText"></div>
+  <div class="used-tags" id="tagList"></div>
+  <button class="btn-reset" onclick="resetAll()">リセット（全テーマを再び引けるようにする）</button>
+</div>
+
 <!-- ルーレット -->
 <div class="roulette-section" id="rouletteSection" style="display:none;">
   <div class="roulette-title">誰から話す？</div>
@@ -373,13 +380,6 @@
       <button class="btn-sub" onclick="addMember()">追加</button>
     </div>
   </details>
-</div>
-
-<div class="used-section" id="usedSection">
-  <div class="used-label">チームで使用済みのテーマ</div>
-  <div class="used-prog" id="progText"></div>
-  <div class="used-tags" id="tagList"></div>
-  <button class="btn-reset" onclick="resetAll()">リセット（全テーマを再び引けるようにする）</button>
 </div>
 
 <footer>スプレッドシートと連携してチーム全員で使用済みテーマを共有します</footer>
