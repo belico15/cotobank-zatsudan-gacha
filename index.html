@@ -431,15 +431,22 @@ function updateStatus() {
   const remaining = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id)).length;
   const skipCount = skippedIds.length;
   if (remaining === 0) {
-    setStatus('ok', `「${currentTeam}」の全テーマを使い切りました — 下のリセットボタンで最初から始め直せます`);
-    const btn = document.getElementById('spinBtn');
-    btn.disabled = true;
-    btn.textContent = '全テーマ使用済み';
+    setStatus('ok', `「${currentTeam}」の全テーマを使い切りました！次のガチャで自動的にリセットします`);
     return;
   }
   let msg = `スプレッドシートと連携済み — ${remaining}テーマ残り`;
   if (skipCount > 0) msg += `（${skipCount}件スキップ中）`;
   setStatus('ok', msg);
+}
+
+// usedIds（プールの使用済み管理）はローカルストレージで管理
+// スプシは積み重ね記録用のみ（削除しない）
+function loadUsedFromLocal() {
+  const saved = localStorage.getItem(`gacha_usedIds_${currentTeam}`);
+  return saved ? JSON.parse(saved) : [];
+}
+function saveUsedToLocal() {
+  localStorage.setItem(`gacha_usedIds_${currentTeam}`, JSON.stringify(usedIds));
 }
 
 async function gasGet(params) {
@@ -558,29 +565,29 @@ async function addNewTeam() {
 
 // ===== スプシ連携 =====
 async function loadUsed() {
+  usedIds = loadUsedFromLocal(); // プール状態はローカルから（スプシは記録用のみ）
   try {
-    const [usedData, skippedData] = await Promise.all([
-      gasGet({ action: 'getUsed', team: currentTeam }),
-      gasGet({ action: 'getSkipped', team: currentTeam }),
-    ]);
-    usedIds = (usedData.used || []).map(Number);
+    const skippedData = await gasGet({ action: 'getSkipped', team: currentTeam });
     skippedIds = (skippedData.skipped || []).map(Number);
-    updateStatus(); // 全テーマ使用済みの場合はここでボタンを無効化
-    const remaining = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id)).length;
-    const btn = document.getElementById('spinBtn');
-    if (remaining > 0) { btn.disabled = false; btn.textContent = 'ガチャを回す'; }
-    renderUsed();
   } catch(e) {
     setStatus('error', '接続エラー — オフラインで動作します');
-    const btn = document.getElementById('spinBtn');
-    btn.disabled = false; btn.textContent = 'ガチャを回す';
   }
+  updateStatus();
+  const btn = document.getElementById('spinBtn');
+  btn.disabled = false; btn.textContent = 'ガチャを回す';
+  renderUsed();
 }
 
 // ===== ガチャ本体 =====
 async function spin() {
   let pool = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id));
-  if (pool.length === 0) return; // 全テーマ使用済み（リセットは手動ボタンのみ）
+  if (pool.length === 0) {
+    // 12種すべて使い切り → ローカルをリセットしてもう一周（スプシ記録はそのまま保持）
+    usedIds = [];
+    saveUsedToLocal();
+    pool = themes.filter(t => !skippedIds.includes(t.id));
+    if (pool.length === 0) pool = [...themes];
+  }
 
   const item = pool[Math.floor(Math.random() * pool.length)];
   current = item;
@@ -618,6 +625,7 @@ async function useTheme() {
   if (!current) return;
   const item = current;
   usedIds.push(item.id);
+  saveUsedToLocal(); // プール状態をローカルに保存
   current = null;
   hideRoulette();
   document.getElementById('useBtn').style.display = 'none';
@@ -662,17 +670,14 @@ function renderUsed() {
   }).join('');
 }
 
-async function resetAll() {
-  if (!confirm(`「${currentTeam}」の使用済みテーマをリセットしますか？\nスプレッドシートの記録もすべて削除されます。`)) return;
-  setStatus('loading', 'リセット中...');
-  try {
-    await gasGet({ action: 'reset', team: currentTeam });
-    usedIds = [];
-    setStatus('ok', `スプレッドシートと連携済み — ${themes.length}テーマ残り`);
-    renderUsed();
-  } catch(e) {
-    setStatus('error', 'リセットに失敗しました');
-  }
+function resetAll() {
+  if (!confirm(`「${currentTeam}」の使用済みテーマをリセットしますか？\n（スプレッドシートの記録は残ります）`)) return;
+  usedIds = [];
+  saveUsedToLocal();
+  updateStatus();
+  const btn = document.getElementById('spinBtn');
+  btn.disabled = false; btn.textContent = 'ガチャを回す';
+  renderUsed();
 }
 
 function copyTheme() {
@@ -885,6 +890,7 @@ async function recordUsedFromRoulette() {
   if (!current) return;
   const item = current;
   usedIds.push(item.id);
+  saveUsedToLocal(); // プール状態をローカルに保存
   current = null;
 
   // ルーレット結果は残したまま、ガチャボタンを戻す
