@@ -60,6 +60,40 @@
   header h1 { font-size: 26px; font-weight: 700; letter-spacing: 0.05em; }
   header p { font-size: 13px; color: var(--text-sub); margin-top: 6px; }
 
+  .team-bar {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 0.75rem;
+    width: 100%; max-width: 520px;
+  }
+  .team-label {
+    font-size: 12px; font-weight: 700;
+    color: var(--text-sub); letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .team-select {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px; color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    padding: 5px 10px; cursor: pointer;
+    flex: 1; max-width: 200px;
+  }
+  .new-team-bar {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 0.75rem;
+    width: 100%; max-width: 520px;
+  }
+  .team-input {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px; color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--border-mid);
+    border-radius: var(--radius-sm);
+    padding: 5px 10px; flex: 1; outline: none;
+  }
+  .team-input:focus { border-color: var(--accent); }
+
   .status-bar {
     display: flex; align-items: center; gap: 7px;
     font-size: 12px; color: var(--text-hint);
@@ -121,6 +155,17 @@
   .btn-main:active { transform: scale(0.97); }
   .btn-main:disabled { opacity: 0.5; cursor: not-allowed; }
 
+  .btn-use {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 15px; font-weight: 700;
+    padding: 0.8rem 2rem; border-radius: 99px;
+    border: none; background: var(--green); color: #fff;
+    cursor: pointer; letter-spacing: 0.04em;
+    transition: filter 0.15s, transform 0.1s;
+  }
+  .btn-use:hover { filter: brightness(1.1); }
+  .btn-use:active { transform: scale(0.97); }
+
   .btn-sub {
     font-family: 'Noto Sans JP', sans-serif;
     font-size: 13px; padding: 0.6rem 1.2rem;
@@ -174,6 +219,19 @@
   <p>オンラインMTGのアイスブレイクに。ボタンを押してテーマを引こう。</p>
 </header>
 
+<div class="team-bar">
+  <span class="team-label">チーム</span>
+  <select id="teamSelect" onchange="onTeamChange()" class="team-select">
+    <option value="開発">開発</option>
+  </select>
+  <button class="btn-sub" onclick="toggleNewTeam()">＋ 追加</button>
+</div>
+<div class="new-team-bar" id="newTeamBar" style="display:none;">
+  <input type="text" id="newTeamInput" class="team-input" placeholder="新しいチーム名（例：営業、デザイン）">
+  <button class="btn-sub" onclick="addNewTeam()">登録</button>
+  <button class="btn-sub" onclick="toggleNewTeam()">キャンセル</button>
+</div>
+
 <div class="status-bar">
   <span class="dot loading" id="dot"></span>
   <span id="status-text">スプレッドシートに接続中...</span>
@@ -185,6 +243,8 @@
 
 <div class="actions">
   <button class="btn-main" id="spinBtn" onclick="spin()" disabled>読み込み中...</button>
+  <button class="btn-use" id="useBtn" onclick="useTheme()" style="display:none;">✅ 利用する</button>
+  <button class="btn-sub" id="skipBtn" onclick="skipTheme()" style="display:none;">スキップ</button>
   <button class="btn-sub" id="copybtn" onclick="copyTheme()" style="display:none;">コピー</button>
 </div>
 
@@ -215,6 +275,7 @@ const themes = [
   { id: 11, category: "アプリ・サービス", theme: "最近よく使っているアプリやWebサービスで、おすすめのものを教えてください。", desc: "便利ツールの共有はすぐ仕事や生活に活かせます。", hint: "例：「〇〇というアプリで家計管理が劇的に楽になりました」など" },
 ];
 
+let currentTeam = '開発';
 let usedIds = [];
 let current = null;
 
@@ -241,9 +302,70 @@ async function gasPost(data) {
   return res.json();
 }
 
+async function loadTeams() {
+  try {
+    const data = await gasGet({ action: 'getTeams' });
+    const teams = data.teams || [];
+    const select = document.getElementById('teamSelect');
+    // 開発を先頭に固定、それ以外をアルファベット順で追加
+    const others = teams.filter(t => t !== '開発').sort();
+    const allTeams = ['開発', ...others];
+    select.innerHTML = allTeams.map(t =>
+      `<option value="${t}"${t === currentTeam ? ' selected' : ''}>${t}</option>`
+    ).join('');
+  } catch(e) {
+    // 取得失敗でも開発だけ表示されるのでそのまま続行
+  }
+}
+
+function onTeamChange() {
+  const select = document.getElementById('teamSelect');
+  currentTeam = select.value;
+  usedIds = [];
+  current = null;
+  document.getElementById('card').innerHTML = '<div class="card-empty">ガチャを回してテーマを表示</div>';
+  document.getElementById('useBtn').style.display = 'none';
+  document.getElementById('skipBtn').style.display = 'none';
+  document.getElementById('copybtn').style.display = 'none';
+  document.getElementById('spinBtn').style.display = 'inline-block';
+  document.getElementById('spinBtn').disabled = true;
+  document.getElementById('spinBtn').textContent = '読み込み中...';
+  loadUsed();
+}
+
+function toggleNewTeam() {
+  const bar = document.getElementById('newTeamBar');
+  const input = document.getElementById('newTeamInput');
+  if (bar.style.display === 'none') {
+    bar.style.display = 'flex';
+    input.value = '';
+    input.focus();
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+async function addNewTeam() {
+  const input = document.getElementById('newTeamInput');
+  const name = input.value.trim();
+  if (!name) return;
+  const select = document.getElementById('teamSelect');
+  // すでに同名チームがあれば追加しない
+  const exists = Array.from(select.options).some(o => o.value === name);
+  if (!exists) {
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    select.appendChild(option);
+  }
+  select.value = name;
+  toggleNewTeam();
+  onTeamChange();
+}
+
 async function loadUsed() {
   try {
-    const data = await gasGet({ action: 'getUsed' });
+    const data = await gasGet({ action: 'getUsed', team: currentTeam });
     usedIds = (data.used || []).map(Number);
     setStatus('ok', `スプレッドシートと連携済み — ${themes.length - usedIds.length}テーマ残り`);
     const btn = document.getElementById('spinBtn');
@@ -262,13 +384,13 @@ async function spin() {
   let pool = themes.filter(t => !usedIds.includes(t.id));
   if (pool.length === 0) {
     usedIds = [];
-    try { await gasGet({ action: 'reset' }); } catch(e) {}
+    try { await gasGet({ action: 'reset', team: currentTeam }); } catch(e) {}
     pool = [...themes];
   }
 
   const item = pool[Math.floor(Math.random() * pool.length)];
   current = item;
-  usedIds.push(item.id);
+  // 利用する/スキップの選択を待つため、ここではusedIdsに追加しない
 
   const card = document.getElementById('card');
   card.style.opacity = '0';
@@ -284,20 +406,42 @@ async function spin() {
     card.style.transform = 'translateY(0)';
   }, 180);
 
+  // ガチャボタンを隠して利用する/スキップを表示
+  document.getElementById('spinBtn').style.display = 'none';
+  document.getElementById('useBtn').style.display = 'inline-block';
+  document.getElementById('skipBtn').style.display = 'inline-block';
   const copybtn = document.getElementById('copybtn');
   copybtn.style.display = 'inline-block';
   copybtn.textContent = 'コピー';
   copybtn.classList.remove('success');
+}
+
+async function useTheme() {
+  if (!current) return;
+  usedIds.push(current.id);
+
+  document.getElementById('useBtn').style.display = 'none';
+  document.getElementById('skipBtn').style.display = 'none';
+  document.getElementById('spinBtn').style.display = 'inline-block';
 
   setStatus('loading', 'スプレッドシートに記録中...');
   renderUsed();
 
   try {
-    await gasPost({ action: 'addUsed', id: item.id, theme: item.theme });
+    await gasPost({ action: 'addUsed', team: currentTeam, id: current.id, theme: current.theme });
     setStatus('ok', `スプレッドシートと連携済み — ${themes.length - usedIds.length}テーマ残り`);
   } catch(e) {
     setStatus('error', '記録に失敗しました（ローカルのみ更新）');
   }
+}
+
+function skipTheme() {
+  // スプシに記録せず、次回また引けるようにプールに戻す
+  current = null;
+  document.getElementById('useBtn').style.display = 'none';
+  document.getElementById('skipBtn').style.display = 'none';
+  document.getElementById('spinBtn').style.display = 'inline-block';
+  setStatus('ok', `スプレッドシートと連携済み — ${themes.length - usedIds.length}テーマ残り`);
 }
 
 function renderUsed() {
@@ -314,10 +458,10 @@ function renderUsed() {
 }
 
 async function resetAll() {
-  if (!confirm('使用済みテーマをリセットしますか？\nスプレッドシートの記録もすべて削除されます。')) return;
+  if (!confirm(`「${currentTeam}」の使用済みテーマをリセットしますか？\nスプレッドシートの記録もすべて削除されます。`)) return;
   setStatus('loading', 'リセット中...');
   try {
-    await gasGet({ action: 'reset' });
+    await gasGet({ action: 'reset', team: currentTeam });
     usedIds = [];
     setStatus('ok', `スプレッドシートと連携済み — ${themes.length}テーマ残り`);
     renderUsed();
@@ -339,7 +483,19 @@ function copyTheme() {
   });
 }
 
-loadUsed();
+// Enterキーで新チーム登録、Escキーでキャンセル
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('newTeamInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') addNewTeam();
+    if (e.key === 'Escape') toggleNewTeam();
+  });
+});
+
+async function init() {
+  await loadTeams();
+  await loadUsed();
+}
+init();
 </script>
 </body>
 </html>
