@@ -283,6 +283,7 @@ const themes = [
 
 let currentTeam = '開発';
 let usedIds = [];
+let skippedIds = [];
 let current = null;
 
 function setStatus(state, text) {
@@ -328,6 +329,7 @@ function onTeamChange() {
   const select = document.getElementById('teamSelect');
   currentTeam = select.value;
   usedIds = [];
+  skippedIds = [];
   current = null;
   document.getElementById('card').innerHTML = '<div class="card-empty">ガチャを回してテーマを表示</div>';
   document.getElementById('useBtn').style.display = 'none';
@@ -411,11 +413,23 @@ async function addNewTeam() {
   onTeamChange();
 }
 
+function updateStatus() {
+  const remaining = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id)).length;
+  const skipCount = skippedIds.length;
+  let msg = `スプレッドシートと連携済み — ${remaining}テーマ残り`;
+  if (skipCount > 0) msg += `（${skipCount}件スキップ中）`;
+  setStatus('ok', msg);
+}
+
 async function loadUsed() {
   try {
-    const data = await gasGet({ action: 'getUsed', team: currentTeam });
-    usedIds = (data.used || []).map(Number);
-    setStatus('ok', `スプレッドシートと連携済み — ${themes.length - usedIds.length}テーマ残り`);
+    const [usedData, skippedData] = await Promise.all([
+      gasGet({ action: 'getUsed', team: currentTeam }),
+      gasGet({ action: 'getSkipped', team: currentTeam }),
+    ]);
+    usedIds = (usedData.used || []).map(Number);
+    skippedIds = (skippedData.skipped || []).map(Number);
+    updateStatus();
     const btn = document.getElementById('spinBtn');
     btn.disabled = false;
     btn.textContent = 'ガチャを回す';
@@ -429,11 +443,14 @@ async function loadUsed() {
 }
 
 async function spin() {
-  let pool = themes.filter(t => !usedIds.includes(t.id));
+  let pool = themes.filter(t => !usedIds.includes(t.id) && !skippedIds.includes(t.id));
   if (pool.length === 0) {
+    // 使用済みをリセット（スキップ中は除外したまま）
     usedIds = [];
     try { await gasGet({ action: 'reset', team: currentTeam }); } catch(e) {}
-    pool = [...themes];
+    pool = themes.filter(t => !skippedIds.includes(t.id));
+    // スキップ中も含めて全部なくなった場合は全解放
+    if (pool.length === 0) pool = [...themes];
   }
 
   const item = pool[Math.floor(Math.random() * pool.length)];
@@ -477,17 +494,21 @@ async function useTheme() {
 
   try {
     await gasPost({ action: 'addUsed', team: currentTeam, id: current.id, theme: current.theme });
-    setStatus('ok', `スプレッドシートと連携済み — ${themes.length - usedIds.length}テーマ残り`);
+    updateStatus();
   } catch(e) {
     setStatus('error', '記録に失敗しました（ローカルのみ更新）');
   }
 }
 
-function skipTheme() {
-  // スプシに記録せず、次のテーマをすぐに引く
+async function skipTheme() {
+  if (!current) return;
+  const skipped = current;
+  skippedIds.push(skipped.id);
   current = null;
   document.getElementById('useBtn').style.display = 'none';
   document.getElementById('skipBtn').style.display = 'none';
+  // バックグラウンドで記録（次のスピンをブロックしない）
+  gasPost({ action: 'addSkipped', team: currentTeam, id: skipped.id, theme: skipped.theme }).catch(() => {});
   spin();
 }
 
