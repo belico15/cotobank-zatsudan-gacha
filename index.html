@@ -366,7 +366,6 @@ const themes = [
   { id: 9, category: "旅・おでかけ", theme: "最近行ってよかった場所（国内外問わず）を教えてください。", desc: "旅の話は誰でも楽しく話せる鉄板テーマ。", hint: "例：「近場の温泉に日帰りで行ったら最高でした」など" },
   { id: 10, category: "季節の楽しみ", theme: "今の季節に関係した、個人的なお気に入りの楽しみ方を教えてください。", desc: "季節感のある話題はその場の空気をつくるのに最適です。", hint: "例：「秋になったら必ず焼き芋を食べるのが習慣です」など" },
   { id: 11, category: "アプリ・サービス", theme: "最近よく使っているアプリやWebサービスで、おすすめのものを教えてください。", desc: "便利ツールの共有はすぐ仕事や生活に活かせます。", hint: "例：「〇〇というアプリで家計管理が劇的に楽になりました」など" },
-  // ↓ AI生成が失敗したときのフォールバック用（通常はGemini APIが動的生成）
   { id: 12, category: "健康・運動", theme: "最近始めた（または気になっている）健康習慣や運動を教えてください。", desc: "運動・食事・睡眠改善など、健康への取り組みは話が尽きません。", hint: "例：「毎朝10分のストレッチを始めた」「水を1日2リットル飲むようにした」など" },
   { id: 13, category: "映画・ドラマ・アニメ", theme: "最近見て印象に残っている映画・ドラマ・アニメを教えてください。", desc: "エンタメの話は共通の話題が見つかりやすく盛り上がります。", hint: "例：「〇〇を見て主人公の考え方に影響を受けた」「何周も見ているお気に入りがある」など" },
   { id: 14, category: "音楽", theme: "最近よく聴いている音楽やアーティストを教えてください。", desc: "音楽の趣味は個性が出やすく、意外な共通点が見つかることも。", hint: "例：「作業中はずっと同じアルバムをリピートしている」「最近〇〇ジャンルにはまった」など" },
@@ -519,7 +518,7 @@ function setStatus(state, text) {
 function updateStatus() {
   const count = usedHistory.length;
   const msg = count === 0
-    ? `準備完了 — テーマを無限に生成します`
+    ? `準備完了 — 何度でも新しいテーマが出ます`
     : `スプレッドシートと連携済み — ${count}テーマ使用済み`;
   setStatus('ok', msg);
 }
@@ -640,7 +639,7 @@ async function addNewTeam() {
 
 // ===== スプシ連携 =====
 async function loadUsed() {
-  // スプシから使用済みテーマ履歴を取得（AIが次回以降の生成で重複を避けるために使う）
+  // スプシから使用済みテーマ履歴を取得（次回以降の出題で重複を避けるために使う）
   try {
     const data = await gasGet({ action: 'getUsed', team: currentTeam });
     usedHistory = (data.used || []).map(item =>
@@ -722,7 +721,6 @@ async function skipTheme() {
   sessionSkipped.add(skipped.theme);
   document.getElementById('useBtn').style.display = 'none';
   document.getElementById('skipBtn').style.display = 'none';
-  gasPost({ action: 'addSkipped', team: currentTeam, id: skipped.id, theme: skipped.theme }).catch(() => {});
   spin();
 }
 
@@ -732,7 +730,7 @@ function hideRoulette() {
 }
 
 function renderUsed() {
-  // 表示なし（usedHistoryはAIの重複除外用にメモリ上だけで保持）
+  // 表示なし（usedHistoryは重複除外用にメモリ上だけで保持）
 }
 
 function copyTheme() {
