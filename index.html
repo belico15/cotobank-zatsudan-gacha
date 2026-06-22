@@ -225,11 +225,17 @@
     <option value="開発">開発</option>
   </select>
   <button class="btn-sub" onclick="toggleNewTeam()">＋ 追加</button>
+  <button class="btn-sub" onclick="toggleRenameTeam()">✏️ 変更</button>
 </div>
 <div class="new-team-bar" id="newTeamBar" style="display:none;">
   <input type="text" id="newTeamInput" class="team-input" placeholder="新しいチーム名（例：営業、デザイン）">
   <button class="btn-sub" onclick="addNewTeam()">登録</button>
   <button class="btn-sub" onclick="toggleNewTeam()">キャンセル</button>
+</div>
+<div class="new-team-bar" id="renameTeamBar" style="display:none;">
+  <input type="text" id="renameTeamInput" class="team-input" placeholder="新しいチーム名">
+  <button class="btn-sub" onclick="confirmRenameTeam()">変更する</button>
+  <button class="btn-sub" onclick="toggleRenameTeam()">キャンセル</button>
 </div>
 
 <div class="status-bar">
@@ -336,12 +342,54 @@ function onTeamChange() {
 function toggleNewTeam() {
   const bar = document.getElementById('newTeamBar');
   const input = document.getElementById('newTeamInput');
+  document.getElementById('renameTeamBar').style.display = 'none'; // 同時に開かない
   if (bar.style.display === 'none') {
     bar.style.display = 'flex';
     input.value = '';
     input.focus();
   } else {
     bar.style.display = 'none';
+  }
+}
+
+function toggleRenameTeam() {
+  const bar = document.getElementById('renameTeamBar');
+  const input = document.getElementById('renameTeamInput');
+  document.getElementById('newTeamBar').style.display = 'none'; // 同時に開かない
+  if (bar.style.display === 'none') {
+    bar.style.display = 'flex';
+    input.value = currentTeam; // 現在のチーム名を初期値に
+    input.select();
+    input.focus();
+  } else {
+    bar.style.display = 'none';
+  }
+}
+
+async function confirmRenameTeam() {
+  const input = document.getElementById('renameTeamInput');
+  const newName = input.value.trim();
+  if (!newName) return;
+  if (newName === currentTeam) { toggleRenameTeam(); return; }
+
+  const select = document.getElementById('teamSelect');
+  const alreadyExists = Array.from(select.options).some(o => o.value === newName);
+  if (alreadyExists) {
+    alert(`「${newName}」はすでに存在します。`);
+    return;
+  }
+
+  setStatus('loading', 'チーム名を変更中...');
+  try {
+    await gasPost({ action: 'renameTeam', oldName: currentTeam, newName });
+    // ドロップダウンの該当オプションを更新
+    const option = Array.from(select.options).find(o => o.value === currentTeam);
+    if (option) { option.value = newName; option.textContent = newName; }
+    currentTeam = newName;
+    toggleRenameTeam();
+    setStatus('ok', `「${newName}」に変更しました — ${themes.length - usedIds.length}テーマ残り`);
+  } catch(e) {
+    setStatus('error', 'チーム名の変更に失敗しました');
   }
 }
 
@@ -482,11 +530,15 @@ function copyTheme() {
   });
 }
 
-// Enterキーで新チーム登録、Escキーでキャンセル
+// Enterキー・Escキー対応
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('newTeamInput').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') addNewTeam();
     if (e.key === 'Escape') toggleNewTeam();
+  });
+  document.getElementById('renameTeamInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') confirmRenameTeam();
+    if (e.key === 'Escape') toggleRenameTeam();
   });
 });
 
