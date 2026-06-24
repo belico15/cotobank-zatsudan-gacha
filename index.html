@@ -640,21 +640,27 @@ async function addNewTeam() {
 
 // ===== スプシ連携 =====
 async function loadUsed() {
-  // スプシから使用済みテーマ履歴を取得（次回以降の出題で重複を避けるために使う）
-  try {
-    const data = await gasGet({ action: 'getUsed', team: currentTeam });
-    usedHistory = (data.used || []).map(item =>
+  // 使用済み履歴とスキップ履歴を「並列」で取得（直列だとGASの立ち上がりで体感が遅くなるため）
+  const team = currentTeam;
+  const [usedRes, skipRes] = await Promise.allSettled([
+    gasGet({ action: 'getUsed', team }),
+    gasGet({ action: 'getSkipped', team }),
+  ]);
+  // 取得中にチームが切り替わっていたら反映しない
+  if (team !== currentTeam) return;
+
+  if (usedRes.status === 'fulfilled') {
+    usedHistory = (usedRes.value.used || []).map(item =>
       typeof item === 'object' ? item : { id: item, category: '', theme: '' }
     );
-  } catch(e) {
+  } else {
     usedHistory = [];
     setStatus('error', '接続エラー — オフラインで動作します');
   }
-  // スキップ履歴（直近1か月分）を取得して出題から除外する
-  try {
-    const sdata = await gasGet({ action: 'getSkipped', team: currentTeam });
-    skippedThemes = new Set((sdata.skipped || []).map(s => typeof s === 'object' ? s.theme : s));
-  } catch(e) {
+
+  if (skipRes.status === 'fulfilled') {
+    skippedThemes = new Set((skipRes.value.skipped || []).map(s => typeof s === 'object' ? s.theme : s));
+  } else {
     skippedThemes = new Set();
   }
   updateStatus();
@@ -985,9 +991,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function init() {
-  await loadTeams();
   loadMembers(); // localStorageから同期的に読む
-  await loadUsed();
+  // チーム一覧と履歴の取得を並列実行（直列だと立ち上がりが遅いため）
+  await Promise.all([loadTeams(), loadUsed()]);
 }
 init();
 </script>
