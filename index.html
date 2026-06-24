@@ -1026,8 +1026,9 @@ async function init() {
   btn.disabled = false; btn.textContent = 'ガチャを回す';
   updateStatus();   // キャッシュ件数で「連携済み」を即表示
   renderUsed();
-  loadTeams();   // チーム一覧（バックグラウンド）
-  loadUsed();    // 使用済み・スキップ履歴（バックグラウンド）
+  // チーム一覧を先に同期してから、履歴を取得する
+  await loadTeams();   // チーム一覧（先に同期）
+  loadUsed();          // 使用済み・スキップ履歴（バックグラウンド）
 }
 init();
 </script>
