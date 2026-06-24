@@ -566,9 +566,13 @@ function onTeamChange() {
   document.getElementById('skipBtn').style.display = 'none';
   document.getElementById('copybtn').style.display = 'none';
   document.getElementById('spinBtn').style.display = 'inline-block';
-  document.getElementById('spinBtn').disabled = true;
-  document.getElementById('spinBtn').textContent = '読み込み中...';
   hideRoulette();
+  loadFromCache(currentTeam);
+  const sb = document.getElementById('spinBtn');
+  sb.disabled = false;
+  sb.textContent = 'ガチャを回す';
+  updateStatus();
+  renderUsed();
   loadMembers();
   loadUsed();
 }
@@ -639,6 +643,24 @@ async function addNewTeam() {
 }
 
 // ===== スプシ連携 =====
+// 履歴のローカルキャッシュ（GASの立ち上がりが遅くても、前回の記録で即座に動けるようにする）
+function saveCache(team) {
+  try {
+    localStorage.setItem(`gacha_used_${team}`, JSON.stringify(usedHistory));
+    localStorage.setItem(`gacha_skip_${team}`, JSON.stringify([...skippedThemes]));
+  } catch(e) {}
+}
+function loadFromCache(team) {
+  try {
+    const u = localStorage.getItem(`gacha_used_${team}`);
+    usedHistory = u ? JSON.parse(u) : [];
+    const s = localStorage.getItem(`gacha_skip_${team}`);
+    skippedThemes = new Set(s ? JSON.parse(s) : []);
+  } catch(e) {
+    usedHistory = []; skippedThemes = new Set();
+  }
+}
+
 async function loadUsed() {
   // 使用済み履歴とスキップ履歴を「並列」で取得（直列だとGASの立ち上がりで体感が遅くなるため）
   const team = currentTeam;
@@ -649,19 +671,20 @@ async function loadUsed() {
   // 取得中にチームが切り替わっていたら反映しない
   if (team !== currentTeam) return;
 
+  // 取得成功したものだけ反映。失敗したものはキャッシュの値を維持する（空で上書きしない）
   if (usedRes.status === 'fulfilled') {
     usedHistory = (usedRes.value.used || []).map(item =>
       typeof item === 'object' ? item : { id: item, category: '', theme: '' }
     );
-  } else {
-    usedHistory = [];
-    setStatus('error', '接続エラー — オフラインで動作します');
   }
-
   if (skipRes.status === 'fulfilled') {
     skippedThemes = new Set((skipRes.value.skipped || []).map(s => typeof s === 'object' ? s.theme : s));
+  }
+  if (usedRes.status === 'rejected' && skipRes.status === 'rejected') {
+    setStatus('error', '接続エラー — 前回の記録で動作中');
   } else {
-    skippedThemes = new Set();
+    // 取得できた最新の状態をキャッシュに保存
+    saveCache(team);
   }
   updateStatus();
   const btn = document.getElementById('spinBtn');
@@ -713,6 +736,7 @@ async function useTheme() {
   if (!current) return;
   const item = current;
   usedHistory.push({ id: item.id, category: item.category || '', theme: item.theme });
+  saveCache(currentTeam);
   current = null;
   hideRoulette();
   document.getElementById('useBtn').style.display = 'none';
@@ -733,6 +757,7 @@ async function skipTheme() {
   const skipped = current;
   current = null;
   skippedThemes.add(skipped.theme);
+  saveCache(currentTeam);
   document.getElementById('useBtn').style.display = 'none';
   document.getElementById('skipBtn').style.display = 'none';
   gasPost({ action: 'addSkipped', team: currentTeam, id: skipped.id, theme: skipped.theme }).catch(() => {});
@@ -958,6 +983,7 @@ async function recordUsedFromRoulette() {
   if (!current) return;
   const item = current;
   usedHistory.push({ id: item.id, category: item.category || '', theme: item.theme });
+  saveCache(currentTeam);
   current = null;
 
   // ルーレット結果は残したまま、ガチャボタンを戻す
@@ -992,11 +1018,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function init() {
   loadMembers(); // localStorageから同期的に読む
+  // 前回の履歴をローカルキャッシュから即座に復元（GASの立ち上がり待ちをなくす）。
+  loadFromCache(currentTeam);
   // 先にガチャを回せるようにする（GASの立ち上がりが遅くても待たせない）。
-  // 履歴（使用済み・スキップ）はバックグラウンドで取得し、揃い次第 重複除外に反映する。
+  // 履歴（使用済み・スキップ）はバックグラウンドで最新化し、揃い次第 重複除外に反映する。
   const btn = document.getElementById('spinBtn');
   btn.disabled = false; btn.textContent = 'ガチャを回す';
-  setStatus('loading', 'すぐに回せます（履歴を同期中…）');
+  updateStatus();   // キャッシュ件数で「連携済み」を即表示
+  renderUsed();
   loadTeams();   // チーム一覧（バックグラウンド）
   loadUsed();    // 使用済み・スキップ履歴（バックグラウンド）
 }
